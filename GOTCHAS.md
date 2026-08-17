@@ -12,6 +12,13 @@ would. Blunt, symptom first. Record what was **tried and didn't work**, not just
 
 ## Electron rebuild (observed 2026-08-17, first build session)
 
+- **An inline comment in `.gitignore` silently disables the rule.** `#` only starts a comment at the
+  *start* of a line; `build/    # regenerated` is read as a literal pattern and matches nothing, so
+  the folder stays tracked while the file *looks* correct. Caught 2026-08-17 only by auditing
+  `git ls-files` before a push — `git status` was clean and gave no hint. Verify any new rule with
+  `git check-ignore -v <path>`, and remember that adding a rule never untracks an already-committed
+  file (`git rm --cached` does).
+
 - **Seen once, never reproduced: a popup rendered the page title + inline reset CSS as visible text
   above the panel** (user screenshot, packaged portable exe, scaled display). Under CDP the same build
   parsed standards-mode with an intact `<head>` in every window. Mechanism unknown. Mitigated
