@@ -761,8 +761,10 @@ new category/project typed is added to the library on submit.
 The popup never closes itself on Submit — the controller closes it only after the write
 succeeds, so a failure leaves the user's text on screen.
 
-Pressing Esc or the system close button behaves as "View dashboard" (i.e. dismiss),
-except in `FOCUS_END` where dismissal is disabled.
+Pressing Esc or the system close button dismisses the popup and opens **nothing** — the
+shell appears only via the explicit `View dashboard` / `Cancel exit` buttons *(revised
+2026-08-17, user decision: while the timer runs, nothing is on screen but the shortcut)*.
+Dismissal is disabled in `FOCUS_END`. Log effects of dismissal are unchanged per §7.
 
 ### 8.4 Focus popup
 

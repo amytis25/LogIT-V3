@@ -5,7 +5,24 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-17 (newest) — first user feedback: shell is on-demand; head-text leak hardened
+## 2026-08-17 (newest) — second pass on shell visibility: dashboard is strictly button-only
+
+**Change.** User re-affirmed and tightened the rule: while the interval timer runs, the ONLY thing on
+screen is the floating shortcut. Esc and the X button on a check-in now dismiss without opening
+anything (they used to route to "View dashboard" per the original §8.3). The shell appears only via
+the explicit `View dashboard` buttons, `Submit and view dashboard`, `Cancel exit`, a save error, or
+launch. Spec §8.3 updated in the same change. Version bumped to **3.0.1** so builds are
+distinguishable — the round-1 fix and this one are invisible to anyone still running the identically
+named 3.0.0 portable exe, which is the likely explanation for "it still pops up after an entry"
+(auto-restore-after-popup only ever existed in the first 3.0.0 build).
+
+**Invalidates:** §8.3's "Esc behaves as View dashboard".
+
+**Open:** user confirms against `LogIT 3.0.1.exe`.
+
+---
+
+## 2026-08-17 — first user feedback: shell is on-demand; head-text leak hardened
 
 **Change.**
 

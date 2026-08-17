@@ -153,7 +153,10 @@ function CheckinPopup({ state }) {
     if (res.invalid) { setInvalid(true); setError('Category and project are required.'); return; }
     if (res.saveError) { setInvalid(false); setError(saveErrorText(res.saveError)); }
   };
-  const dismiss = () => window.logit.send('checkin-dismiss', { toShell: true });
+  // Esc / X close the popup and nothing else — the dashboard appears ONLY via
+  // the explicit buttons below (user decision 2026-08-17, second pass).
+  const dismiss = () => window.logit.send('checkin-dismiss', { toShell: false });
+  const viewDashboard = () => window.logit.send('checkin-dismiss', { toShell: true });
 
   React.useEffect(() => {
     const onKey = (e) => {
@@ -170,9 +173,9 @@ function CheckinPopup({ state }) {
 
   const footer = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      {ctx.buttons.includes('view') && <GhostBtn onClick={dismiss}>View dashboard</GhostBtn>}
-      {ctx.buttons.includes('view-focus') && <GhostBtn onClick={dismiss}>View dashboard</GhostBtn>}
-      {ctx.buttons.includes('view-cancel') && <GhostBtn onClick={dismiss}>Cancel exit</GhostBtn>}
+      {ctx.buttons.includes('view') && <GhostBtn onClick={viewDashboard}>View dashboard</GhostBtn>}
+      {ctx.buttons.includes('view-focus') && <GhostBtn onClick={viewDashboard}>View dashboard</GhostBtn>}
+      {ctx.buttons.includes('view-cancel') && <GhostBtn onClick={viewDashboard}>Cancel exit</GhostBtn>}
       {ctx.buttons.includes('submit-and-view') && (
         <GhostBtn onClick={() => submit({ andView: true })}>Submit and view dashboard</GhostBtn>
       )}
