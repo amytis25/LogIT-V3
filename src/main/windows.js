@@ -40,7 +40,6 @@ export class WindowManager {
     this.shortcut = null;
     this.toastWin = null;
     this.toastTimer = null;
-    this.shellWasVisible = false;
     this.tearingDownPopup = false;
     screen.on('display-metrics-changed', () => this.clampShortcut());
   }
@@ -142,19 +141,15 @@ export class WindowManager {
 
   // ── the popup slot (never more than one — CLAUDE §4.6) ────────────────────
 
-  // Description: open the single popup window; hides the shell while the popup
-  //              is in the foreground (SPEC §8.1).
+  // Description: open the single popup window; the shell leaves the foreground
+  //              and stays away until explicitly summoned (SPEC §8.1 — user
+  //              decision 2026-08-17: the dashboard is on-demand only).
   // Inputs:  heightKey — key into POPUP_HEIGHTS; dismissable — native close /
   //          Esc allowed (false only for FOCUS_END)
   // Outputs: none
   openPopupWindow(heightKey, dismissable) {
     if (this.popup !== null) return;
-    if (this.shell && this.shell.isVisible() && !this.shell.isMinimized()) {
-      this.shellWasVisible = true;
-      this.shell.hide();
-    } else {
-      this.shellWasVisible = false;
-    }
+    this.hideShell();
     this.popup = new BrowserWindow(this.baseOptions({
       width: POPUP_WIDTH + 24, height: POPUP_HEIGHTS[heightKey] + 24,
       resizable: false, skipTaskbar: true, alwaysOnTop: true,
@@ -195,8 +190,8 @@ export class WindowManager {
     this.openPopupWindow(key, true);
   }
 
-  // Description: tear the popup window down and re-show the shell if it was
-  //              visible before the popup appeared.
+  // Description: tear the popup window down. The shell does NOT come back on
+  //              its own — only an explicit showShell() summons it.
   // Inputs: none  Outputs: none
   closePopup() {
     if (this.popup === null) return;
@@ -204,9 +199,6 @@ export class WindowManager {
     this.popup.destroy();
     this.tearingDownPopup = false;
     this.popup = null;
-    if (this.shellWasVisible && this.shell && !this.shell.isDestroyed()) {
-      this.shell.show();
-    }
   }
 
   // Description: bring the shell to front on a pane.
@@ -214,10 +206,18 @@ export class WindowManager {
   // Outputs: none
   showShell(pane) {
     if (!this.shell || this.shell.isDestroyed()) return;
-    this.shellWasVisible = true;
     this.shell.show();
     this.shell.focus();
     if (pane) this.shell.webContents.send('nav', pane);
+  }
+
+  // Description: send the shell to the background (session started, or a popup
+  //              took the foreground). The shortcut remains the way back in.
+  // Inputs: none  Outputs: none
+  hideShell() {
+    if (this.shell && !this.shell.isDestroyed() && this.shell.isVisible()) {
+      this.shell.hide();
+    }
   }
 
   // Description: success toast (SPEC §8.10) — compact, self-dismissing, never

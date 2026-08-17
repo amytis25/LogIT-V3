@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import './reset.css';
 import '@fontsource/inter-tight/400.css';
 import '@fontsource/inter-tight/500.css';
 import '@fontsource/inter-tight/600.css';

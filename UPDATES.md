@@ -5,7 +5,34 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-17 (newest) — end-to-end build complete; Windows executables produced
+## 2026-08-17 (newest) — first user feedback: shell is on-demand; head-text leak hardened
+
+**Change.**
+
+- **The shell no longer sticks around once logging starts.** User decision after first real use:
+  pressing Start logging (or Begin focus) hides the main window, and closing a popup no longer
+  auto-restores it. The dashboard returns only via `View dashboard`, `Submit and view dashboard`,
+  a save error, a cancelled quit, or app launch; the shortcut is the way back in.
+  `FUNCTIONAL_SPEC.md §8.1` and the §7 rows are updated in this same change.
+- **The `<head>` render leak is hardened away.** The user's screenshot showed the popup rendering the
+  page title + reset CSS as visible text above the panel. Not reproducible under CDP inspection of the
+  same packaged build (all windows parse standards-mode with an intact head), so the mechanism is
+  unconfirmed — instead the possibility is removed: index.html now carries no inline `<style>` (reset
+  lives in `src/renderer/reset.css`, bundled) and no markup before `<html>`. Worst case is now zero
+  visible characters.
+- **Countdown ring is DPI-proof:** the seconds label sits in flex flow with the ring absolutely
+  positioned behind it, so display scaling can't separate them (user runs a scaled display; CDP
+  screenshots render at logical resolution and hid this).
+
+**Invalidates:** the §8.1 "re-shows when the popup closes" behaviour and the previous entry's claim
+that the shell/popup hand-off was final.
+
+**Open.** If the head-text block ever reappears (now it could only be blank space), grab it with
+`--remote-debugging-port` per GOTCHAS and record the DOM; the root cause was never observed directly.
+
+---
+
+## 2026-08-17 — end-to-end build complete; Windows executables produced
 
 **Change.** The full app exists and is packaged. All five phases of `docs/PLAN.md` are done:
 

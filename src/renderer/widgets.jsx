@@ -253,18 +253,24 @@ export const CountdownRing = ({ seconds, total }) => {
   const r = 9.5;
   const c = 2 * Math.PI * r;
   const off = c * (1 - Math.max(0, seconds) / total);
+  // The number sits in normal flow with the ring absolutely behind it, so the
+  // two can never drift apart under display scaling.
   return (
-    <div style={{ position: 'relative', width: 28, height: 28, flex: 'none' }}>
-      <svg width="28" height="28" viewBox="0 0 24 24" style={{ transform: 'rotate(-90deg)' }}>
+    <div style={{
+      position: 'relative', width: 28, height: 28, flex: 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center'
+    }}>
+      <svg width="28" height="28" viewBox="0 0 24 24" style={{
+        position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)'
+      }}>
         <circle cx="12" cy="12" r={r} stroke="var(--line)" strokeWidth="2" fill="none" />
         <circle cx="12" cy="12" r={r} stroke="var(--accent)" strokeWidth="2" fill="none"
           strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
           style={{ transition: 'stroke-dashoffset 1s linear' }} />
       </svg>
       <span style={{
-        position: 'absolute', inset: 0, display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-2)'
+        fontFamily: 'var(--font-mono)', fontSize: 10, lineHeight: 1,
+        color: 'var(--ink-2)', position: 'relative'
       }}>{Math.max(0, seconds)}</span>
     </div>
   );

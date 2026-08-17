@@ -572,7 +572,7 @@ Every user-visible trigger, the log operations it performs, and the resulting st
 
 | Trigger | Log operation | Result |
 |---|---|---|
-| Start logging (INACTIVE) | write open row: `start=now, kind=normal`, details empty | → ACTIVE-normal; interval timer starts; engagement reset |
+| Start logging (INACTIVE) | write open row: `start=now, kind=normal`, details empty | → ACTIVE-normal; interval timer starts; engagement reset; **shell hides** (§8.1) |
 | Log activity (ACTIVE) | none | Check-in popup, `OFF_CYCLE` |
 | Focus mode | none | Focus popup, variant A or B by whether a row is open |
 | Interval chip changed | none | Save interval; re-arm interval timer if running |
@@ -630,7 +630,7 @@ Every user-visible trigger, the log operations it performs, and the resulting st
 
 | Trigger | Log operation | Result |
 |---|---|---|
-| Begin focus | write open row: `start=now, kind=focus`, empty | → ACTIVE-focus; focus-end timer armed; engagement **suspended** |
+| Begin focus | write open row: `start=now, kind=focus`, empty | → ACTIVE-focus; focus-end timer armed; engagement **suspended**; shell hides |
 | Check in regularly | write open row: `start=now, kind=normal`, empty | → ACTIVE-normal; interval starts; engagement reset |
 | Dismissed | none | stay INACTIVE |
 
@@ -701,8 +701,12 @@ sidebar; it is a button on the Dashboard.
 **Theme toggle** appears in the title bar of every window including popups. Flipping it
 anywhere flips it everywhere immediately and saves the choice.
 
-The shell hides itself while a popup is in the foreground and re-shows when the popup
-closes, so the user is never looking at two competing surfaces.
+**The shell is on-demand, not persistent-on-screen** *(revised 2026-08-17, user decision —
+supersedes the original "re-shows when the popup closes" rule)*. It hides when a popup takes
+the foreground **and when a session starts** (Start logging, Begin focus), and it does **not**
+come back on its own when a popup closes. It returns only when explicitly summoned: `View
+dashboard` in any popup, `Submit and view dashboard`, a save error the user must see, a
+cancelled quit, or launching the app. The floating shortcut is the always-available way back.
 
 ### 8.2 Dashboard pane
 

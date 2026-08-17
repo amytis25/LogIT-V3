@@ -1,0 +1,11 @@
+/* reset.css
+   Description: the base reset for every LogIT window, bundled into the one
+                stylesheet (never inline in index.html — see the note there).
+   Inputs:  none
+   Outputs: base layout rules
+   Created: 2026-08-17 */
+
+html, body, #root { margin: 0; padding: 0; height: 100%; }
+body { overflow: hidden; background: transparent; }
+* { box-sizing: border-box; }
+input, textarea, button { font: inherit; }

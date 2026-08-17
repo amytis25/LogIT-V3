@@ -1,20 +1,13 @@
 <!doctype html>
-<!-- index.html
-     Description: the one renderer entry for every window kind (shell, popup,
-                  shortcut, toast) — the kind arrives as ?win= query param.
-     Inputs:  main.jsx bundle
-     Outputs: the window's UI
-     Created: 2026-08-17 -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- index.html — the one renderer entry for every window kind (shell,
+         popup, shortcut, toast); the kind arrives as ?win= query param.
+         Inputs: main.jsx bundle. Outputs: the window's UI. Created 2026-08-17.
+         Deliberately NO inline <style>: all CSS lives in the bundle so no
+         head text can ever render visibly (seen once in the wild, 2026-08-17). -->
     <title>LogIT</title>
-    <style>
-      html, body, #root { margin: 0; padding: 0; height: 100%; }
-      body { overflow: hidden; background: transparent; }
-      * { box-sizing: border-box; }
-      input, textarea, button { font: inherit; }
-    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -63,6 +63,7 @@ function fakeSurface() {
     calls,
     confirmAnswer: true,
     showCheckin: (ctx, prefill) => calls.push(['showCheckin', ctx, prefill]),
+    hideShell: () => calls.push(['hideShell']),
     showStartLogging: () => calls.push(['showStartLogging']),
     showFocus: (variant, prefill) => calls.push(['showFocus', variant, prefill]),
     closePopup: () => calls.push(['closePopup']),

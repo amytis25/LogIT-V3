@@ -208,6 +208,9 @@ export class Core {
     if (this.popup !== null) this.closePopup();
     else this.armIntervalIfEligible();
     this.armEngagement();
+    // The session has started: the dashboard recedes; the shortcut and the
+    // popups carry the day (SPEC §8.1, user decision 2026-08-17).
+    this.surface.hideShell();
     this.surface.refresh();
     return { ok: true };
   }
@@ -457,6 +460,7 @@ export class Core {
     this.sched.clear(T_ENGAGEMENT);   // suspended during focus (SPEC §5.3)
     if (variantB) this.surface.toast(`Logged: ${wrap.category} - ${wrap.project}`);
     this.closePopup({ restartInterval: false });
+    this.surface.hideShell();   // session started — dashboard recedes
     return { ok: true };
   }
 

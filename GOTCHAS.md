@@ -12,6 +12,17 @@ would. Blunt, symptom first. Record what was **tried and didn't work**, not just
 
 ## Electron rebuild (observed 2026-08-17, first build session)
 
+- **Seen once, never reproduced: a popup rendered the page title + inline reset CSS as visible text
+  above the panel** (user screenshot, packaged portable exe, scaled display). Under CDP the same build
+  parsed standards-mode with an intact `<head>` in every window. Mechanism unknown. Mitigated
+  structurally: index.html carries no inline `<style>` (reset is bundled via `src/renderer/reset.css`)
+  and nothing before `<html>`, so a recurrence can render zero visible characters. If layout ever looks
+  inexplicably shifted again, attach `--remote-debugging-port` and dump `document.compatMode` +
+  `document.body.textContent` before touching CSS.
+- **Force-killing the app orphans the open row** (end stays empty forever; restart deliberately leaves
+  it — SPEC §5.1). Fine for the app, but a debugging session that `Stop-Process`es a live instance
+  plants one in the user's real log. Quit through the app when possible; own up when not.
+
 - **`Documents` is OneDrive-redirected on this machine.** `app.getPath('documents')` resolves to
   `C:\Users\amyti\OneDrive\Documents`, NOT `C:\Users\amyti\Documents`. Anything that verifies log files
   from outside the app must ask Electron (or check both); a hardcoded `~/Documents` path reports
