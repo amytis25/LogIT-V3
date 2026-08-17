@@ -1,0 +1,12 @@
+# machine-local state
+.claude/
+
+# dependencies and build output
+node_modules/
+dist/
+dist-electron/
+release/
+
+# the user's real personal data — never committed (CLAUDE.md §10)
+AppLog/
+settings.json

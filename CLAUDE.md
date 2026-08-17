@@ -61,6 +61,19 @@ framework silently as a side effect of writing code.
 - The old build's stack is not automatically the new one. It is one option among several, with the advantage
   of known-working and the disadvantage of being what we are walking away from.
 
+## Stack (chosen 2026-08-17 — see UPDATES.md entry for rationale)
+
+- **Electron** (main process owns log/settings/core; multi-window UI). App is a background app:
+  closing the last window must not quit it.
+- **React 18 + Vite** for the renderer only. One bundle, window kind via query param.
+- **Plain JavaScript (ESM) + JSDoc contract blocks.** No TypeScript.
+- **`node:test`** for the headless suites (log, settings, derive, core). `npm test` runs them.
+- **electron-builder** for packaging. `npm run dist` → Windows exe here; same command on a Mac → dmg.
+- **Data root: `Documents\LogIT\`** (`AppLog\` + `settings.json`), injected into the log and settings
+  layers by `src/main/main.js`. Nothing else may know it.
+- Layout: `src/main/` (core, log, settings, windows — no UI imports), `src/shared/` (constants,
+  derived numbers — importable from both sides), `src/preload/`, `src/renderer/` (React), `tests/`.
+
 ---
 
 ## 4. Hard invariants — hold everywhere

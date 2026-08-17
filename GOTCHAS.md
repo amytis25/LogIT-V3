@@ -10,6 +10,23 @@ would. Blunt, symptom first. Record what was **tried and didn't work**, not just
 
 ---
 
+## Electron rebuild (observed 2026-08-17, first build session)
+
+- **`Documents` is OneDrive-redirected on this machine.** `app.getPath('documents')` resolves to
+  `C:\Users\amyti\OneDrive\Documents`, NOT `C:\Users\amyti\Documents`. Anything that verifies log files
+  from outside the app must ask Electron (or check both); a hardcoded `~/Documents` path reports
+  "no file" while the app is happily writing. Cost ~15 min of "why is the file missing".
+- **Sandboxed preload scripts must be CommonJS.** With `"type": "module"` in package.json the preload
+  file has to be `.cjs`, or every window silently gets no `window.logit` bridge.
+- **The design handoff's logo icon paints its clock hands in `--accent-ink`,** which is invisible when
+  the icon itself sits on an accent-ink square (the title-bar badge). The renderer's Icon takes a
+  `--logo-hands` override for surfaces that need contrast; don't "fix" it back to the handoff version.
+- **Verifying the running app: launch with `--remote-debugging-port=9223`** and drive/screenshot each
+  window over CDP (`http://127.0.0.1:9223/json` lists targets; every LogIT window is a `page`). Two
+  traps: `Runtime.evaluate` with `awaitPromise: true` on an expression that opens/closes BrowserWindows
+  can stall the whole script (fire-and-forget with `awaitPromise: false` and re-poll state instead), and
+  `element.click()` returns undefined, so `?.click() ?? 'NOT FOUND'` reports failure on success.
+
 ## Time and dates
 
 - **Times are stored without a date, so every duration is a subtraction that can go negative.** `23:45 →

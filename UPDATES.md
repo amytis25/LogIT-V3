@@ -5,7 +5,84 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-17 (newest) — rebuild started; spec written; stack deliberately NOT chosen
+## 2026-08-17 (newest) — end-to-end build complete; Windows executables produced
+
+**Change.** The full app exists and is packaged. All five phases of `docs/PLAN.md` are done:
+
+- **Verified by automated tests (60 passing, `npm test`):** the frozen CSV contract both ways (quotes,
+  commas, newlines, CRLF, literal empties), both folder layouts, open-row-by-empty-end scan, atomic
+  rewrite + delete, locked-file retry; settings snapping / colour stability / library growth; every
+  derived-number rule in SPEC §9; and the whole state machine — every row of the §7 event→effect table,
+  all five check-in contexts, focus begin/end/interrupt/midnight-crossing, engagement (timeouts do NOT
+  postpone it; focus suspends it; PAUSED resumes on user action), never-stack, restart-on-dealt-with,
+  the §10 save-failure ladder (attempt counts, echo at 3, popup never closes), and all four quit paths.
+- **Verified against the live app** (CDP-driven, results read from the actual files): start → check-in
+  submit closes the row and opens a new one; libraries + colours grow and persist; Skip removes the open
+  row; manual entry lands in a past date's file; toast fires; the shell, check-in popup, focus popup B,
+  and shortcut render matching the design handoff (screenshots taken).
+- **Packaged:** `release/LogIT Setup 3.0.0.exe` (installer) and `release/LogIT 3.0.0.exe` (portable),
+  both launched and smoke-tested. Mac dmg builds from the same config by running `npm run dist` on a Mac.
+
+**Not yet exercised by hand:** the interval popup appearing over other apps during a real workday, popup
+timeout while genuinely away, engagement firing after a real hour, day rollover at midnight, and the
+Excel-holds-the-file-locked banner flow (its logic is unit-tested; the real-Excel walk isn't). These are
+the §13 checklist items that need a day of real use.
+
+**Invalidates:** nothing; this completes the plan of record.
+
+**Open.**
+- **User: copy old `AppLog` into `Documents\LogIT\`** (note: Documents is OneDrive-redirected on this
+  machine — the real path is `OneDrive\Documents\LogIT`). The legacy `CSVs/` layout is read in place.
+- **User: walk FUNCTIONAL_SPEC §13 by hand** during a real day of use; file anything odd in GOTCHAS.
+- **User (needs a Mac): run `npm run dist` on macOS** for the dmg.
+
+---
+
+## 2026-08-17 — stack chosen: Electron + React (plain JS); build begins
+
+**Change.** The stack is decided and implementation starts, end to end, per the user's request to build
+from planning through a runnable executable.
+
+- **Runtime: Electron.** The app is a background multi-window desktop app (persistent shell, three
+  always-on-top popups, a frameless floating shortcut, a toast) that must not quit when the last window
+  closes, on Windows *and* macOS. Electron gives all of that first-class from one codebase.
+- **Renderer: React 18 + Vite.** The design handoff is already React components; the visual layer ports
+  near-verbatim. One renderer bundle serves every window (window kind chosen by query param).
+- **Language: plain JavaScript (ESM) with JSDoc contract blocks** per CLAUDE.md §6.2. No TypeScript —
+  consistent with §8's "don't suggest type-checker adoption".
+- **Tests: `node:test`** (built-in runner, zero dependencies). Log layer, settings, derived numbers, and
+  the whole state machine + scheduler run headless with an injected fake clock.
+- **Packaging: electron-builder.** Windows NSIS installer + portable exe are built on this machine. The
+  same config carries `mac` targets (dmg/zip); building the mac artifact requires running the same
+  command on a Mac — cross-building mac binaries from Windows is not possible. Documented in README.
+- **Data root: `Documents\LogIT\`** containing `AppLog\` and `settings.json`. Chosen over AppData because
+  "the log is the product" — it must be visible, greppable, and survive reinstalls. The log layer and
+  settings layer receive this root by injection; nothing else knows it.
+- **Legacy data: read-both, no migration.** Both folder layouts (`.../MM-Month/YYYY-MM-DD.csv` and legacy
+  `.../MM-Month/CSVs/YYYY-MM-DD.csv`) are read in place; the app never moves or rewrites old files. New
+  writes always use the new layout. Spec §3.1 allows either approach; not touching user files is the
+  deliberately conservative pick.
+
+**Spec-vs-design conflicts resolved (spec wins per precedence §2):**
+
+- Design shows a `5m` interval chip; spec allows exactly 10/15/20/30/45/60. Six chips built.
+- Design labels EXIT_PROMPT "no countdown"; spec §7 gives it a 60 s timeout path. Timeout implemented and
+  the ring shown, same as other contexts.
+- Design's editor palette has 7 colours; spec §3.2 says a fixed palette of 8. Eight used.
+- Design's start-logging popup copy says Skip "silences prompts for the next hour"; spec says Skip just
+  restarts the interval. Copy corrected to match behaviour.
+- §6 scheduler refinements (wall-clock alignment, early fire, grace period) deferred, as the spec allows.
+
+**Invalidates:** the previous entry's "no source files until the stack is chosen" hold.
+
+**Open.**
+- **Old data move. Owner: user.** Real logs live in `../LogIT/AppLog` (legacy layout). Copy that `AppLog`
+  folder into `Documents\LogIT\` and the rebuild reads it as-is. The app does not do this automatically.
+- **Mac executable. Owner: user (needs a Mac).** `npm run dist` on macOS from this repo produces the dmg.
+
+---
+
+## 2026-08-17 — rebuild started; spec written; stack deliberately NOT chosen
 
 **Change.** New folder, starting from behaviour rather than from the old code. Two things exist:
 
