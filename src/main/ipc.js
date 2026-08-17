@@ -42,6 +42,11 @@ export function registerIpc({ core, queries, windows }) {
         core.userAction();
         return { ok: true };
       case 'shortcut-move-by':     return windows.moveShortcutBy(payload.dx, payload.dy);
+      case 'choose-log-folder': {
+        const chosen = await windows.chooseFolder(core.log.root);
+        if (chosen === null) return { ok: true, cancelled: true };
+        return core.changeLogRoot(chosen);
+      }
       case 'library-add':
         core.settings.addToLibrary(payload.kind, payload.name);
         core.userAction();

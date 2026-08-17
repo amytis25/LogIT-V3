@@ -69,8 +69,9 @@ framework silently as a side effect of writing code.
 - **Plain JavaScript (ESM) + JSDoc contract blocks.** No TypeScript.
 - **`node:test`** for the headless suites (log, settings, derive, core). `npm test` runs them.
 - **electron-builder** for packaging. `npm run dist` → Windows exe here; same command on a Mac → dmg.
-- **Data root: `Documents\LogIT\`** (`AppLog\` + `settings.json`), injected into the log and settings
-  layers by `src/main/main.js`. Nothing else may know it.
+- **Default data root: `Documents\LogIT\`**, injected into the log and settings layers by
+  `src/main/main.js`. Nothing else may know it. `settings.json` always lives there; **`AppLog\`
+  follows the user's `logRoot` setting** (dashboard field, added 2026-08-17) and may live anywhere.
 - Layout: `src/main/` (core, log, settings, windows — no UI imports), `src/shared/` (constants,
   derived numbers — importable from both sides), `src/preload/`, `src/renderer/` (React), `tests/`.
 

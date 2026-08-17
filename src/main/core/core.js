@@ -24,7 +24,7 @@ import {
 import {
   elapsedMinutes, hhmmToMinutes, isValidDate, isValidHHMM, wrappedSpanMinutes
 } from '../../shared/derive.js';
-import { toDateStr } from '../log/log_store.js';
+import { LogStore, probeRootWritable, toDateStr } from '../log/log_store.js';
 import { Scheduler, T_ENGAGEMENT, T_FOCUS_END, T_INTERVAL, T_POPUP } from './scheduler.js';
 
 export class Core {
@@ -557,6 +557,50 @@ export class Core {
     return stored;
   }
 
+  // Description: move where logs are stored. Existing history is deliberately
+  //              NOT moved — the app never touches the user's old files (§4.5);
+  //              it simply reads and writes the new folder from now on. An open
+  //              block is the one exception: its row is carried across so it
+  //              stays closable, preserving "at most one open row" (§4.2).
+  //              Refused up front if the folder can't be written to.
+  // Inputs:  newRoot — absolute directory path
+  // Outputs: { ok, error?, unchanged? }
+  async changeLogRoot(newRoot) {
+    const chosen = String(newRoot ?? '').trim();
+    if (chosen === '') return { ok: false, error: 'No folder was chosen.' };
+    if (chosen === this.log.root) return { ok: true, unchanged: true };
+    if (!probeRootWritable(chosen)) {
+      return { ok: false, error: 'That folder can’t be written to. Pick another, or check its permissions.' };
+    }
+
+    const oldRoot = this.log.root;
+    // Capture the open block (if any) BEFORE the store forgets where it lives.
+    const carryDate = this.openRowDate;
+    const carryRow = carryDate === null ? null : this.log.findOpenRow(carryDate)?.row ?? null;
+
+    this.log.setRoot(chosen);
+    if (carryRow !== null) {
+      try {
+        await this.log.appendRow(carryDate, carryRow);
+      } catch {
+        this.log.setRoot(oldRoot);   // nothing was moved; stay exactly as we were
+        return { ok: false, error: 'The open block couldn’t be written to that folder. Nothing was changed.' };
+      }
+      try {
+        await new LogStore(oldRoot).deleteOpenRow(carryDate);
+      } catch {
+        // The block is safe in the new folder; the old file kept a stray open
+        // row the app will never touch again. Say so rather than hide it.
+        this.surface.notifyError(
+          `Logs now save to ${chosen}, but the old folder kept an unfinished row — delete that last line by hand if you want it gone.`);
+      }
+    }
+
+    this.settings.setLogRoot(chosen);
+    this.userAction();
+    return { ok: true };
+  }
+
   // Description: flip the theme everywhere and save.
   // Inputs: none  Outputs: none
   themeToggle() {
@@ -751,6 +795,8 @@ export class Core {
       },
       intervalMinutes: s.intervalMinutes,
       popupTimeoutSec: s.popupTimeoutSec,
+      logRoot: this.log.root,
+      logRootIsDefault: s.logRoot === null,
       categories: s.categories,
       projects: s.projects,
       colors: colorMaps,

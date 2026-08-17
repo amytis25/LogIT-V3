@@ -209,6 +209,23 @@ export class WindowManager {
     this.popup = null;
   }
 
+  // Description: ask the user for a folder (native picker), parented to the
+  //              shell so it can't be lost behind other windows.
+  // Inputs:  current — path the dialog opens at
+  // Outputs: Promise<string|null> — null when cancelled
+  async chooseFolder(current) {
+    const parent = this.shell && !this.shell.isDestroyed() ? this.shell : null;
+    const options = {
+      title: 'Choose where LogIT stores your logs',
+      defaultPath: current,
+      properties: ['openDirectory', 'createDirectory']
+    };
+    const result = parent
+      ? await dialog.showOpenDialog(parent, options)
+      : await dialog.showOpenDialog(options);
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+  }
+
   // Description: bring the shell to front on a pane.
   // Inputs:  pane — sidebar pane id or undefined
   // Outputs: none

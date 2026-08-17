@@ -17,7 +17,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   APPLOG_DIR_NAME, LEGACY_CSVS_DIR_NAME, LOG_COLUMNS, LOG_HEADER_LINE,
-  LOG_LINE_ENDING, MONTH_NAMES, WRITE_RETRY_ATTEMPTS, WRITE_RETRY_BACKOFF_MS
+  LOG_LINE_ENDING, MONTH_NAMES, WRITE_PROBE_FILE_NAME,
+  WRITE_RETRY_ATTEMPTS, WRITE_RETRY_BACKOFF_MS
 } from '../../shared/constants.js';
 import { parseCsv, serializeLine, serializeLines } from './csv.js';
 
@@ -36,8 +37,18 @@ export class LogStore {
   //          sleep — optional injectable delay fn (ms) => Promise, for tests
   // Outputs: none
   constructor(root, sleep = defaultSleep) {
-    this.appLogDir = path.join(root, APPLOG_DIR_NAME);
     this.sleep = sleep;
+    this.setRoot(root);
+  }
+
+  // Description: point the store at a different data root. The folder layout
+  //              below it is unchanged; this is the only way the log's location
+  //              moves, so nothing else has to learn about the change.
+  // Inputs:  root — directory that contains (or will contain) AppLog/
+  // Outputs: none
+  setRoot(root) {
+    this.root = root;
+    this.appLogDir = path.join(root, APPLOG_DIR_NAME);
   }
 
   // ── paths (private) ───────────────────────────────────────────────────────
@@ -221,6 +232,26 @@ export class LogStore {
 }
 
 // ── module helpers ──────────────────────────────────────────────────────────
+
+// Description: can LogIT actually write logs into this folder? Creates the
+//              AppLog/ subfolder (which it would need anyway) and round-trips a
+//              probe file. Used before adopting a user-chosen location, so a
+//              bad choice is refused up front instead of at the next check-in.
+// Inputs:  root — candidate data root
+// Outputs: boolean
+export function probeRootWritable(root) {
+  let writable = true;
+  try {
+    const dir = path.join(root, APPLOG_DIR_NAME);
+    fs.mkdirSync(dir, { recursive: true });
+    const probe = path.join(dir, WRITE_PROBE_FILE_NAME);
+    fs.writeFileSync(probe, 'LogIT write test\n', 'utf8');
+    fs.unlinkSync(probe);
+  } catch {
+    writable = false;
+  }
+  return writable;
+}
 
 // Description: year and month folder names for a date.
 // Inputs:  dateStr — 'YYYY-MM-DD'

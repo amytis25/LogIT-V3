@@ -109,6 +109,56 @@ function RightColumn({ spark, interval, compact }) {
   );
 }
 
+// Description: the log-folder field (SPEC §8.2) — shows where AppLog/ is being
+//              written and lets the user move it. Old files are never moved, so
+//              the hint says so plainly rather than letting history seem to
+//              vanish from the charts.
+// Inputs:  root — current path; isDefault — whether it's the untouched default
+// Outputs: element
+function LogLocationPanel({ root, isDefault }) {
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  const choose = async () => {
+    setBusy(true);
+    const res = await window.logit.send('choose-log-folder');
+    setBusy(false);
+    setError(res?.ok === false ? res.error : '');
+  };
+
+  return (
+    <div style={{
+      marginTop: 18, padding: 12,
+      background: 'var(--panel-alt)', border: '1px solid var(--line)',
+      borderRadius: 'var(--radius)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <Label>LOG FOLDER{isDefault ? '' : ' · CUSTOM'}</Label>
+          <div title={root} style={{
+            marginTop: 5, fontFamily: 'var(--font-mono)', fontSize: 11.5,
+            color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden',
+            textOverflow: 'ellipsis', direction: 'rtl', textAlign: 'left'
+          }}>{root}</div>
+        </div>
+        <Btn size="sm" kind="secondary" icon="folder" disabled={busy} onClick={choose}>
+          {busy ? 'Choosing…' : 'Change…'}
+        </Btn>
+      </div>
+      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+        Your daily <span style={{ fontFamily: 'var(--font-mono)' }}>.csv</span> files live in an{' '}
+        <span style={{ fontFamily: 'var(--font-mono)' }}>AppLog</span> folder here. Changing this
+        starts writing to the new place — existing logs stay where they are, so move the old{' '}
+        <span style={{ fontFamily: 'var(--font-mono)' }}>AppLog</span> folder yourself if you want
+        the history to follow.
+      </div>
+      {error !== '' && (
+        <div style={{ marginTop: 8 }}><ErrorBanner message={error} onDismiss={() => setError('')} /></div>
+      )}
+    </div>
+  );
+}
+
 // Description: today's timeline — the 8 most recent entries; the open row
 //              shows an empty end (SPEC §8.2).
 // Inputs:  rows, colors
@@ -245,6 +295,7 @@ export function DashboardPane({ state, shellError, onDismissError }) {
           </div>
           <div style={{ marginTop: 10 }}><SparkBars data={spark} height={64} /></div>
         </div>
+        <LogLocationPanel root={state.logRoot} isDefault={state.logRootIsDefault} />
       </div>
     );
   }
@@ -375,6 +426,7 @@ export function DashboardPane({ state, shellError, onDismissError }) {
         </div>
         <RightColumn spark={spark} interval={state.intervalMinutes} compact />
       </div>
+      <LogLocationPanel root={state.logRoot} isDefault={state.logRootIsDefault} />
     </div>
   );
 }

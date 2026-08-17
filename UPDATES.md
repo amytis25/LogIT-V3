@@ -5,7 +5,38 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-17 (newest) — shortcut halved; real app icon on the exe and taskbar (v3.0.3)
+## 2026-08-17 (newest) — the log folder is user-choosable from the dashboard (v3.0.4)
+
+**Change.** A `LOG FOLDER` field at the bottom of both dashboard looks shows where daily files are
+written and opens the OS folder picker to move them. `FUNCTIONAL_SPEC.md §3.2` and `§8.2` updated.
+
+**The bootstrap problem and how it's solved.** The data root used to hold both `AppLog/` and
+`settings.json`, so "where do logs live?" could not itself be a setting — the app would have to read
+settings to find settings. Resolved by splitting the two: **settings.json always lives at the default
+root** (`Documents\LogIT`), and `logRoot` inside it points `AppLog/` anywhere. `SettingsStore` gained
+`defaultRoot` + a `logRoot` getter; `LogStore` gained `setRoot()`. The log layer is still the only
+thing that knows a path (CLAUDE.md §5.1) — `main.js` reads the setting and hands it over, nothing else.
+
+**Three decisions worth recording:**
+
+- **Existing logs are not moved.** Relocating years of the user's files on a settings click is the
+  kind of destructive convenience §4.5 forbids, and a half-completed move across a locked file would
+  be unrecoverable. New writes go to the new folder; the field's hint says plainly that history stays
+  put and the old `AppLog/` can be moved by hand.
+- **An open block is carried across.** Without this, changing folders mid-block would strand the open
+  row in the old folder where `updateOpenRow` could never reach it — the block would be unclosable and
+  `ACTIVE ⟺ one open row` (§4.2) would break. The row is appended to the new folder first and only
+  then deleted from the old, so a failure leaves the block safe rather than lost. If the delete fails
+  the user is told about the stray line instead of it being hidden.
+- **Writability is probed before adopting** (create `AppLog/`, round-trip a probe file). A bad folder
+  is refused up front rather than surfacing as a failed save at the next check-in.
+
+**Invalidates:** CLAUDE.md's "Data root: `Documents\LogIT\` (`AppLog\` + `settings.json`)" — that is
+now the *default*, and `AppLog/` may live elsewhere. Settings location is unchanged.
+
+---
+
+## 2026-08-17 — shortcut halved; real app icon on the exe and taskbar (v3.0.3)
 
 **Change.**
 

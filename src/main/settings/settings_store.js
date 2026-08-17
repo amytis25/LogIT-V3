@@ -20,8 +20,17 @@ export class SettingsStore {
   // Inputs:  root — data root directory
   // Outputs: none (state on the instance)
   constructor(root) {
+    this.defaultRoot = root;          // also the fallback log root
     this.file = path.join(root, SETTINGS_FILE_NAME);
     this.data = this.load();
+  }
+
+  // Description: the data root logs actually live in — the user's choice if set,
+  //              otherwise the default root.
+  // Inputs:  none
+  // Outputs: absolute directory path
+  get logRoot() {
+    return this.data.logRoot ?? this.defaultRoot;
   }
 
   // Description: read + normalise the settings file; snap the interval; save
@@ -36,6 +45,11 @@ export class SettingsStore {
       raw = {};   // missing or corrupt file → defaults; first save recreates it
     }
     const data = {
+      // Where AppLog/ lives. null = alongside this settings file (the default
+      // root). Settings themselves never move, so there is no bootstrap loop:
+      // the app can always find settings.json without first knowing logRoot.
+      logRoot: typeof raw.logRoot === 'string' && raw.logRoot.trim() !== ''
+        ? raw.logRoot : null,
       intervalMinutes: Number(raw.intervalMinutes) || DEFAULT_INTERVAL_MIN,
       popupTimeoutSec: Number(raw.popupTimeoutSec) || DEFAULT_POPUP_TIMEOUT_SEC,
       theme: raw.theme === 'dark' ? 'dark' : DEFAULT_THEME,
@@ -68,6 +82,16 @@ export class SettingsStore {
     this.data.intervalMinutes = snapInterval(Number(minutes));
     this.persist();
     return this.data.intervalMinutes;
+  }
+
+  // Description: remember where the user wants logs stored. Passing the default
+  //              root clears the override rather than pinning the path, so a
+  //              default install keeps following the default.
+  // Inputs:  root — absolute directory path
+  // Outputs: none
+  setLogRoot(root) {
+    this.data.logRoot = root === this.defaultRoot ? null : root;
+    this.persist();
   }
 
   // Description: set the theme and save.

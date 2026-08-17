@@ -31,11 +31,13 @@ if (!app.requestSingleInstanceLock()) {
   app.on('window-all-closed', () => { /* stay alive; core owns quitting */ });
 
   app.whenReady().then(() => {
-    // The data root: visible, greppable, survives reinstalls (UPDATES 2026-08-17).
-    const dataRoot = path.join(app.getPath('documents'), 'LogIT');
+    // The default data root: visible, greppable, survives reinstalls (UPDATES
+    // 2026-08-17). settings.json always lives here so it can be found without
+    // first knowing the log location; AppLog/ follows the user's choice.
+    const defaultRoot = path.join(app.getPath('documents'), 'LogIT');
 
-    const log = new LogStore(dataRoot);
-    const settings = new SettingsStore(dataRoot);
+    const settings = new SettingsStore(defaultRoot);
+    const log = new LogStore(settings.logRoot);
     windows = new WindowManager();
     const clock = () => Date.now();
     const core = new Core({

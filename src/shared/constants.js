@@ -12,6 +12,8 @@ export const LOG_COLUMNS = [
 export const LOG_HEADER_LINE = LOG_COLUMNS.join(',');
 export const LOG_LINE_ENDING = '\r\n';
 export const APPLOG_DIR_NAME = 'AppLog';
+// Written and deleted to prove a chosen log folder is writable before adopting it.
+export const WRITE_PROBE_FILE_NAME = '.logit-write-test';
 export const LEGACY_CSVS_DIR_NAME = 'CSVs';       // old layout: .../MM-Month/CSVs/date.csv
 export const SETTINGS_FILE_NAME = 'settings.json';
 export const MONTH_NAMES = [

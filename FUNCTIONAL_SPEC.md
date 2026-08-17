@@ -153,6 +153,7 @@ A single small settings file, human-readable, saved immediately on every change.
 
 | Setting | Values | Default | Notes |
 |---|---|---|---|
+| Log folder | absolute directory path | the default data root | *(added 2026-08-17)* Where `AppLog/` is written. The settings file itself always stays at the default root, so it can be found without first knowing this value |
 | Check-in interval | one of **10, 15, 20, 30, 45, 60** minutes | 20 | Any stored value outside the set is snapped to the nearest allowed value on load and re-saved |
 | Popup timeout | seconds | 60 | Applies to every popup countdown |
 | Theme | `light` \| `dark` | `light` | Global; toggled from any window |
@@ -744,6 +745,20 @@ Two looks, chosen by whether a row is open.
   minutes. The open row shows an empty end. Empty state: "No entries yet today."
 - **Log activity** (primary) and **Focus mode** buttons.
 - Right column: the same 7-day sparkline panel, plus the interval chips panel.
+
+**Log folder field (both looks, at the bottom)** *(added 2026-08-17)*. Shows the folder the
+daily files are being written to, with a `Change…` button opening the OS folder picker.
+Rules:
+
+- The chosen folder is rejected if it cannot be written to; the setting is unchanged and an
+  inline error says so. Nothing is written on a rejected choice.
+- **Existing logs are never moved.** Changing the folder only changes where new files go —
+  history is not rewritten or relocated (§4 invariant), and the hint text says so, so the
+  user knows to move the old `AppLog/` folder themselves if they want it to follow.
+- **An open block is the one exception:** its row is carried into the new folder and removed
+  from the old one, so the block stays closable and "at most one open row" still holds. If
+  the carry-over write fails, nothing changes at all.
+- Choosing the default root again clears the override rather than pinning the path.
 
 Both looks refresh whenever the log changes (any submit, skip, timeout, manual save) and
 whenever the pane becomes visible.

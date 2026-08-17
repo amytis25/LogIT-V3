@@ -511,6 +511,69 @@ test('a failed save keeps the popup open, counts attempts, and echoes at attempt
   assert.equal(res.ok, true);   // each further press is another attempt
 });
 
+// ── log folder location (SPEC §8.2) ─────────────────────────────────────────
+
+test('changing the log folder writes new entries there and leaves old files alone', async () => {
+  const { core, log, today, root } = makeCore();
+  await core.startLogging();
+  await core.checkinSubmit({ category: 'Work', project: 'A', notes: 'first' });
+  const oldRowCount = log.readDay(today).length;
+
+  const newRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'logit-newroot-'));
+  const res = await core.changeLogRoot(newRoot);
+  assert.equal(res.ok, true);
+  assert.equal(core.settings.data.logRoot, newRoot);
+  assert.equal(log.root, newRoot);
+
+  // The old folder is untouched — history is never moved or rewritten.
+  const oldStore = new LogStore(root, () => Promise.resolve());
+  assert.equal(oldStore.readDay(today).length, oldRowCount - 1);   // open row carried out
+  assert.equal(oldStore.findOpenRow(today), null);
+
+  // The open block came across and is still closable in the new folder.
+  assert.equal(core.state, STATE_ACTIVE_NORMAL);
+  assert.equal(log.findOpenRow(today).row.start, '14:00');
+  await core.logActivity();
+  await core.checkinSubmit({ category: 'Work', project: 'B', notes: 'after move' });
+  const moved = log.readDay(today);
+  assert.equal(moved.at(-2).notes, 'after move');
+  assert.equal(moved.at(-2).end, '14:00');
+});
+
+test('an unwritable log folder is refused and nothing changes', async () => {
+  const { core, log } = makeCore();
+  await core.startLogging();
+  const rootBefore = log.root;
+  // A path under a file (not a directory) cannot be created.
+  const blocker = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'logit-block-')), 'a-file');
+  fs.writeFileSync(blocker, 'not a directory', 'utf8');
+  const res = await core.changeLogRoot(path.join(blocker, 'nested'));
+  assert.equal(res.ok, false);
+  assert.match(res.error, /can’t be written/);
+  assert.equal(log.root, rootBefore);
+  assert.equal(core.settings.data.logRoot, null);
+});
+
+test('choosing the default root again clears the override', async () => {
+  const { core, root } = makeCore();
+  const newRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'logit-newroot-'));
+  await core.changeLogRoot(newRoot);
+  assert.equal(core.settings.data.logRoot, newRoot);
+  await core.changeLogRoot(root);
+  assert.equal(core.settings.data.logRoot, null);      // back to following the default
+  assert.equal(core.settings.logRoot, root);
+});
+
+test('log root survives a restart and reports itself in the snapshot', async () => {
+  const { core, root } = makeCore();
+  const newRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'logit-newroot-'));
+  await core.changeLogRoot(newRoot);
+  assert.equal(core.getState().logRoot, newRoot);
+  assert.equal(core.getState().logRootIsDefault, false);
+  const reloaded = new SettingsStore(root);           // settings.json stayed at the default root
+  assert.equal(reloaded.logRoot, newRoot);
+});
+
 test('interval change re-arms from now with the new period', async () => {
   const { core, time } = makeCore();
   await core.startLogging();
