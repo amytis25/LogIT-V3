@@ -275,7 +275,8 @@ second, timer change last.
 
 
         ┌──────────────────┐
-        │ QUIT REQUESTED   │  (sidebar Quit, or window close)
+        │ QUIT REQUESTED   │  (sidebar Quit, or Cmd+Q / system shutdown.
+        │                  │   NOT the title-bar X — see §8.1)
         └────────┬─────────┘
                  │
           ╱──────┴───────╲
@@ -577,7 +578,8 @@ Every user-visible trigger, the log operations it performs, and the resulting st
 | Focus mode | none | Focus popup, variant A or B by whether a row is open |
 | Interval chip changed | none | Save interval; re-arm interval timer if running |
 | Sidebar navigation | none | Swap content pane; engagement reset |
-| Quit | see ASM 5.1 | |
+| Title-bar X (shell) | none | Hide the shell; app keeps running; engagement reset |
+| Quit (sidebar) | see ASM 5.1 | |
 
 ### Start-logging popup (interval fired while INACTIVE)
 
@@ -697,6 +699,13 @@ first show.
 Categories, Projects — each with an icon; the selected one is visually distinct. Below a
 divider, a visually de-emphasised **Quit**. Focus mode is deliberately *not* in the
 sidebar; it is a button on the Dashboard.
+
+**Closing versus quitting** *(2026-08-17, user decision)*. The title-bar **X** on any
+window — the shell included — closes only that window and leaves the app running, with
+the floating shortcut still there to summon it back. Logging is untouched: timers keep
+running and the open row is left exactly as it is. **Quit** in the sidebar is the only
+in-app control that ends the app (as does Cmd+Q / system shutdown), and it follows the
+§5.1 exit rules including the `EXIT_PROMPT` popup when a row is open.
 
 **Theme toggle** appears in the title bar of every window including popups. Flipping it
 anywhere flips it everywhere immediately and saves the choice.

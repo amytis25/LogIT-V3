@@ -135,8 +135,9 @@ export function Shell({ state }) {
       height: '100%', display: 'flex', flexDirection: 'column',
       background: 'var(--bg)', color: 'var(--ink)', overflow: 'hidden'
     }}>
+      {/* X puts the window away and leaves the app running; only Quit exits. */}
       <TitleBar title={meta.title} subtitle={meta.subtitle} mode={state.theme}
-        onClose={() => window.logit.send('quit-request')} />
+        onClose={() => window.logit.send('hide-shell')} />
       <div style={{ display: 'flex', alignItems: 'stretch', flex: 1, minHeight: 0 }}>
         <aside style={{
           width: 180, flex: 'none', borderRight: '1px solid var(--line)',

@@ -36,6 +36,11 @@ export function registerIpc({ core, queries, windows }) {
       case 'theme-toggle':         return core.themeToggle();
       case 'user-action':          return core.userAction();
       case 'shortcut-activate':    return core.shortcutActivate();
+      case 'hide-shell':
+        // Closing a pane is a button press, so it counts as engagement (§5.3).
+        windows.hideShell();
+        core.userAction();
+        return { ok: true };
       case 'shortcut-move-by':     return windows.moveShortcutBy(payload.dx, payload.dy);
       case 'library-add':
         core.settings.addToLibrary(payload.kind, payload.name);

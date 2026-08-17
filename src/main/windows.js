@@ -87,9 +87,12 @@ export class WindowManager {
       center: true, resizable: true, transparent: false,
       backgroundColor: '#f1ece1'
     }));
+    // Closing the shell puts the window away; it never ends the app. Only the
+    // sidebar Quit (and Cmd+Q / system shutdown) quits — user decision
+    // 2026-08-17, SPEC §5.1/§8.1. The shortcut is how the shell comes back.
     this.shell.on('close', (e) => {
-      e.preventDefault();               // background app: the core owns quitting
-      this.core.quitRequest();
+      e.preventDefault();
+      this.hideShell();
     });
     this.shell.once('ready-to-show', () => this.shell.show());
     this.loadRenderer(this.shell, 'shell');

@@ -5,7 +5,26 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-17 (newest) — second pass on shell visibility: dashboard is strictly button-only
+## 2026-08-17 (newest) — the X closes a window; only Quit ends the app (v3.0.2)
+
+**Change.** User decision: the title-bar **X** on the shell now hides that window and leaves LogIT
+running (timers, open row, and the floating shortcut all untouched) — the shortcut summons it back.
+**Quit** in the sidebar is the only in-app way out, still following the §5.1 exit rules (including the
+`EXIT_PROMPT` popup when a row is open); Cmd+Q and system shutdown also still quit. Previously the
+shell's X — and the native close route (Alt+F4) — sent a quit request. Popup X buttons already worked
+this way (dismiss, per context), so behaviour is now uniform: **X closes a pane, never the program.**
+
+`FUNCTIONAL_SPEC.md §5.1`, `§7` (dashboard triggers) and `§8.1` updated in the same change.
+
+**Invalidates:** §5.1's "QUIT REQUESTED (sidebar Quit, or window close)" — window close is no longer a
+quit trigger.
+
+**Note.** The one window with no X is the `FOCUS_END` check-in, which by §4 must be acted on. That is
+unchanged and deliberate.
+
+---
+
+## 2026-08-17 — second pass on shell visibility: dashboard is strictly button-only
 
 **Change.** User re-affirmed and tightened the rule: while the interval timer runs, the ONLY thing on
 screen is the floating shortcut. Esc and the X button on a check-in now dismiss without opening
