@@ -1,0 +1,114 @@
+# GOTCHAS.md — traps, quirks, things already tried
+
+Read before debugging. If something here already explains the symptom, don't re-derive it.
+Add an entry the moment something wastes more than ~20 min — or the moment you find a trap that clearly
+would. Blunt, symptom first. Record what was **tried and didn't work**, not just the answer.
+
+> **Seeded 2026-08-17 from a full read of the old build** (`../LogIT`). Nothing here has been re-observed in
+> the rebuild — there is no rebuild yet. These are traps that are structural to the problem, so they will
+> reappear unless designed against. Provenance is marked per entry.
+
+---
+
+## Time and dates
+
+- **Times are stored without a date, so every duration is a subtraction that can go negative.** `23:45 →
+  00:10` is minus 1,415 minutes. Every place that computes a duration must clamp at zero *and* the display
+  layer must treat "start later than now" as "started yesterday". Old build: handled in some places, not
+  all — four separate copies of the same subtraction, which is exactly why the spec says compute it once.
+- **`end.replace(day=start.day + 1)` is not "tomorrow".** It throws on the 31st of a month and silently
+  lies across month boundaries. The old build shipped this in its analytics date-range walk and it took a
+  refactor to find. Always add a one-day delta to the date object; never arithmetic on the day field.
+- **A day's file is chosen at the moment of writing, not when the block started.** A block open across
+  midnight has its row in yesterday's file and gets closed there. Don't try to split it across two files —
+  the spec deliberately doesn't.
+- **Focus end times in the past must be rejected at validation, not at timer-arm time.** The old build
+  computed a negative delay, printed a warning to stdout nobody reads, and left the session "running" with
+  no timer. It never ended.
+
+## The open row
+
+- **"The open row" is not "the last row."** They're the same only if nothing else appended afterwards.
+  Old build, verified in code: the manual-entry pane appends straight to today's file, so back-filling an
+  entry while a block is open puts a *closed* row after the *open* one. From then on the last-row lookup
+  returns the manual row — the open row can never be closed, and the dashboard flips to its idle look while
+  a block is genuinely open. **Find the open row by scanning for an empty end time, not by taking the last
+  line.** This is the single nastiest bug in the old design.
+- **Rewriting the whole file to patch one row is how a day's data gets lost.** The old build re-read all
+  rows, mutated the last, and rewrote the file in place; an interruption or a lock arriving mid-write
+  truncates the day. Write to a temp file and swap, or append-only.
+- **Deleting the open row is a real operation** (Skip, engagement timeout, exit-Skip). It removes the last
+  line. It is the *only* destructive operation in the app — everything else is append or patch.
+
+## Files, locking, encoding
+
+- **The log file will be open in Excel.** That's the normal case, not the exotic one — the user opens their
+  own logs. Writes must retry a few times with a short backoff, then surface a real error with the user's
+  text echoed back. A save that fails silently is the worst outcome in the whole app.
+- **On Windows, careless CSV writing doubles the line endings.** Writing `\r\n` through a text stream that
+  is itself translating `\n` gives `\r\r\n`, and every second row reads as blank afterwards. Whatever the
+  stack, open log files in the mode that disables newline translation and let the CSV layer emit `\r\n`.
+- **Quoting is not optional.** Notes contain commas and quotes constantly ("figuring out what a CV is cuz
+  this posting requires ""other""?" is a real row from the user's log). RFC 4180 both ways — writing and
+  reading.
+- **A missing file is a normal state, not an error.** Days with no entries have no file. Every rollup walks
+  dates and must treat absent files as zero, not skip them (skipping shifts the chart) and not raise.
+
+## Timers
+
+- **A popup's countdown can fire after the popup is gone.** Old build symptom: closing a check-in and then
+  seeing a timeout row appear in the log a few seconds later. The countdown must be stopped in the popup's
+  teardown path, not only in the button handlers, because dismissal has several routes (button, window
+  close, Esc, the app closing it after a successful save).
+- **Restart the interval timer when the popup is *dealt with*, not when it appeared.** Otherwise a popup the
+  user ignored for 55 s is followed by the next one 5 s later.
+- **A 1 Hz UI tick left running on a hidden pane is a real leak.** Old build fixed this twice. Start it when
+  the live element becomes visible, stop it when it hides *and* when the window closes.
+- **The engagement timer is not the popup timer and must not be reset by it.** Popup timeouts are the
+  evidence that nobody is there. Wiring "any timer event resets engagement" defeats the entire mechanism.
+
+## State
+
+- **Don't keep booleans alongside the state machine.** The old build had `logging_mode_active`,
+  `focus_active`, `current_mode`, `logging_popup_open`, and `_suppress_popup` for what is really three
+  states, and they could disagree. Every "why is it showing the wrong screen" bug traced back to this.
+- **A strict state machine rejects self-transitions.** Old build: `transition_to(current_state)` raised.
+  Handlers reached from more than one path (end-focus, error fallback, exit) must check before transitioning
+  or be written so re-entry is legal. Decide which at design time.
+- **Two popups must never coexist.** Every trigger path — interval fire, shortcut double-click, dashboard
+  button, focus end — needs the same "is one already open?" guard. The old build had it in some paths only.
+
+## UI behaviour
+
+- **Closing the last window must not quit the app.** It is a background app with a floating shortcut; the
+  default behaviour of most toolkits is the opposite and it will exit out from under the user.
+- **The floating shortcut needs double-click, and drag must not trigger it.** A single-click activation
+  fires constantly while repositioning it.
+- **A shortcut positioned from screen geometry ends up off-screen** when the user unplugs a monitor. Clamp
+  on every show, not just on creation.
+- **Global theme switching leaks callbacks.** Any widget that registers for theme changes must unregister
+  when it dies, or the next broadcast calls into a destroyed widget. Old build did this by hand in every
+  class — a registry that holds weak references is the cheaper answer.
+
+## Data and settings
+
+- **Reading a colour writes to disk.** Colour assignment is lazy and persistent, so the first render of a
+  new category name mutates and saves the settings file — from inside a paint path. It works, but know that
+  it happens: a "read-only" chart render can touch the disk, and it will do it once per never-before-seen
+  category name.
+- **Categories in the log and categories in the library are different sets.** Free text is allowed, names
+  get removed from the library, old files carry names that no longer exist. Never assume a row's category is
+  in the library, and never assume a library entry appears in the log.
+- **Legacy rows have `mode=inactive` and category `Break / Inactive`.** They still count as time and they
+  will show up in analytics as a category. They must parse forever; they must never be written again.
+- **A stored interval can be illegal.** Snap to the nearest allowed value on load and re-save, or the chip
+  row renders with nothing selected and the user can't tell what the app is doing.
+
+## Testing
+
+- **The core must be testable without a display.** The old build's only test file covered the scheduler,
+  precisely because it was the one piece with no UI dependency — and that test suite is the reason the
+  scheduler survived the refactor intact. Keep the state machine, the timers, and the log layer injectable
+  with a fake clock; the acceptance checklist in `FUNCTIONAL_SPEC.md §13` is mostly automatable if they are.
+- **Verify against the file, not the screen.** "The dashboard shows one entry" is not evidence. Open the
+  day's file and read the line.
