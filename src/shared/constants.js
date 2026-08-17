@@ -71,8 +71,10 @@ export const SHELL_HEIGHT = 600;
 export const SHELL_MIN_WIDTH = 740;
 export const SHELL_MIN_HEIGHT = 480;
 export const POPUP_WIDTH = 400;
-export const SHORTCUT_SIZE = 84;
-export const SHORTCUT_WINDOW_SIZE = 108;   // button + ring padding + drop shadow
+// Halved 2026-08-17 (user): the shortcut sits over other apps all day, so it
+// stays out of the way. Every other shortcut dimension derives from this.
+export const SHORTCUT_SIZE = 42;
+export const SHORTCUT_WINDOW_SIZE = 56;   // button + ring padding + drop shadow
 
 // ── Analytics ranges (SPEC §8.8) ────────────────────────────────────────────
 export const ANALYTICS_RANGES_DAYS = [7, 14, 30];

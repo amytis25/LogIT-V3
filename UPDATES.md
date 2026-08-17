@@ -5,7 +5,32 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-17 (newest) — the X closes a window; only Quit ends the app (v3.0.2)
+## 2026-08-17 (newest) — shortcut halved; real app icon on the exe and taskbar (v3.0.3)
+
+**Change.**
+
+- **Floating shortcut is half size:** `SHORTCUT_SIZE` 84 → 42 (window 108 → 56). The ring gap and
+  stroke, corner radius, focus/pause badges, and drop shadow now all derive from that one constant, so
+  the size is changeable in one place without anything drifting out of proportion. Previously the
+  radius (21) and badge sizes were magic numbers that would not have survived a resize.
+  `FUNCTIONAL_SPEC.md §8.9` updated.
+- **The app icon is now the app's own logo mark.** `scripts/make-icon.mjs` rasterises the exact
+  geometry of `Icon name="logo"` (sage rounded square + cream clock hand) to `build/icon.png` (512)
+  and `build/icon.ico` (16/32/48/64/128/256), dependency-free — shapes are supersampled and the PNG
+  is encoded by hand with zlib. Wired into electron-builder (`win.icon`, NSIS installer/uninstaller
+  icons, `mac.icon`) and into every `BrowserWindow` so the taskbar matches. `npm run icons` runs
+  automatically as part of `start` and `dist`, so the artwork can never drift from the in-app logo.
+
+**Why generate rather than commit artwork:** the icon has exactly one definition (the logo geometry).
+Hand-exporting a PNG would create a second copy that silently goes stale. `build/` is gitignored per
+CLAUDE.md §10 (regenerated output is not committed).
+
+**Invalidates:** §8.9's 84 px figure; the previous iconless build (executables showed Electron's
+default icon).
+
+---
+
+## 2026-08-17 — the X closes a window; only Quit ends the app (v3.0.2)
 
 **Change.** User decision: the title-bar **X** on the shell now hides that window and leaves LogIT
 running (timers, open row, and the floating shortcut all untouched) — the shortcut summons it back.

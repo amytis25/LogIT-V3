@@ -22,6 +22,11 @@ would. Blunt, symptom first. Record what was **tried and didn't work**, not just
 - **Force-killing the app orphans the open row** (end stays empty forever; restart deliberately leaves
   it — SPEC §5.1). Fine for the app, but a debugging session that `Stop-Process`es a live instance
   plants one in the user's real log. Quit through the app when possible; own up when not.
+- **`Stop-Process LogIT` kills the USER'S running app, not just your test instance.** This is their
+  daily driver — they may be mid-block while you verify a build. Before killing: read today's file and
+  check for an open row (empty end). If one exists, someone is actively logging; leave it alone and
+  verify against a scratch data root instead. Happened 2026-08-17 while checking the 3.0.3 icon —
+  their session was INACTIVE at the time, so nothing was lost, but that was luck rather than care.
 
 - **`Documents` is OneDrive-redirected on this machine.** `app.getPath('documents')` resolves to
   `C:\Users\amyti\OneDrive\Documents`, NOT `C:\Users\amyti\Documents`. Anything that verifies log files

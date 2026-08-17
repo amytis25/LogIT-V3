@@ -869,8 +869,9 @@ Structurally identical; one manages categories, the other projects.
 
 ### 8.9 Floating shortcut
 
-- Small always-on-top square (~84 px, generously rounded), showing the app logo,
-  positioned at the top-right of the primary screen by default.
+- Small always-on-top square (~42 px, generously rounded — halved 2026-08-17 at the
+  user's request), showing the app logo, positioned at the top-right of the primary
+  screen by default. Ring, badges, and shadow all derive from that one size.
 - Draggable anywhere; clamped so it can never leave the screen.
 - **Double-click** activates it (single clicks and drags must not trigger logging).
 - A thin progress ring just outside the square shows time until the next scheduled event.

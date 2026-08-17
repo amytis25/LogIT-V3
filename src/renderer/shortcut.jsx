@@ -1,7 +1,7 @@
 // shortcut.jsx
-// Description: the floating shortcut (SPEC §8.9) — 84 px rounded square with a
-//              progress ring, four visual states, draggable (drag never
-//              triggers logging), double-click activates.
+// Description: the floating shortcut (SPEC §8.9) — a rounded square (size from
+//              SHORTCUT_SIZE) with a progress ring, four visual states,
+//              draggable (drag never triggers logging), double-click activates.
 // Inputs:  state snapshot
 // Outputs: <ShortcutRoot>
 // Created: 2026-08-17
@@ -72,10 +72,20 @@ export function ShortcutRoot({ state }) {
     window.logit.send('shortcut-activate');
   };
 
+  // Everything scales off SHORTCUT_SIZE so the button can be resized in one
+  // place (constants.js) without the ring or badges drifting out of proportion.
   const SIZE = SHORTCUT_SIZE;
-  const R = 21;
-  const RECT_W = SIZE + 4;
+  const R = SIZE / 4;                                  // logo's own corner radius
+  const RING_GAP = Math.max(2, Math.round(SIZE / 16)); // ring sits outside the button
+  const RING_STROKE = Math.max(1.5, SIZE / 42);
+  const RECT_W = SIZE + RING_GAP * 2;
   const PERIMETER = 4 * RECT_W;
+  const SVG_SIZE = SIZE + RING_GAP * 4;
+  const RING_ORIGIN = RING_GAP;                        // rect inset inside the svg
+  const BADGE = Math.round(SIZE * 0.21);
+  const BADGE_INSET = Math.round(SIZE * 0.12);
+  const BADGE_ICON = Math.max(6, Math.round(SIZE * 0.107));
+  const SHADOW = `drop-shadow(0 ${Math.round(SIZE / 14)}px ${Math.round(SIZE / 5)}px rgba(0,0,0,0.25))`;
 
   return (
     <div
@@ -88,51 +98,54 @@ export function ShortcutRoot({ state }) {
         opacity: cfg.opacity, cursor: 'pointer', userSelect: 'none'
       }}>
       <div style={{ position: 'relative', width: SIZE, height: SIZE }}>
-        <svg width={SIZE + 10} height={SIZE + 10}
-          viewBox={`0 0 ${SIZE + 10} ${SIZE + 10}`}
-          style={{ position: 'absolute', top: -5, left: -5, transform: 'rotate(-90deg)' }}>
-          <rect x="3" y="3" width={RECT_W} height={RECT_W} rx={R + 4}
-            fill="none" stroke="var(--line)" strokeWidth="2" />
+        <svg width={SVG_SIZE} height={SVG_SIZE}
+          viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`}
+          style={{
+            position: 'absolute', top: -RING_GAP * 2, left: -RING_GAP * 2,
+            transform: 'rotate(-90deg)'
+          }}>
+          <rect x={RING_ORIGIN} y={RING_ORIGIN} width={RECT_W} height={RECT_W} rx={R + RING_GAP}
+            fill="none" stroke="var(--line)" strokeWidth={RING_STROKE} />
           {ringPct > 0 && (
-            <rect x="3" y="3" width={RECT_W} height={RECT_W} rx={R + 4}
-              fill="none" stroke={cfg.ringColor} strokeWidth="2"
+            <rect x={RING_ORIGIN} y={RING_ORIGIN} width={RECT_W} height={RECT_W} rx={R + RING_GAP}
+              fill="none" stroke={cfg.ringColor} strokeWidth={RING_STROKE}
               strokeDasharray={PERIMETER}
               strokeDashoffset={PERIMETER * (1 - ringPct)}
               strokeLinecap="round" />
           )}
           {visual === 'paused' && (
-            <rect x="3" y="3" width={RECT_W} height={RECT_W} rx={R + 4}
-              fill="none" stroke={cfg.ringColor} strokeWidth="2"
+            <rect x={RING_ORIGIN} y={RING_ORIGIN} width={RECT_W} height={RECT_W} rx={R + RING_GAP}
+              fill="none" stroke={cfg.ringColor} strokeWidth={RING_STROKE}
               strokeDasharray="3 4" opacity="0.6" />
           )}
         </svg>
         <div style={{
           width: SIZE, height: SIZE, color: cfg.logoColor,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.25))'
+          filter: SHADOW
         }}>
           <Icon name="logo" size={SIZE} />
         </div>
         {visual === 'focus' && (
           <span style={{
-            position: 'absolute', top: 10, right: 10,
-            width: 16, height: 16, borderRadius: 999,
+            position: 'absolute', top: BADGE_INSET, right: BADGE_INSET,
+            width: BADGE, height: BADGE, borderRadius: 999,
             background: w.base, color: w.ink,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            border: '2px solid var(--panel)', boxShadow: 'var(--shadow)'
+            border: '1px solid var(--panel)', boxShadow: 'var(--shadow)'
           }}>
-            <Icon name="focus" size={9} />
+            <Icon name="focus" size={BADGE_ICON} />
           </span>
         )}
         {visual === 'paused' && (
           <span style={{
-            position: 'absolute', top: 10, right: 10,
-            width: 18, height: 18, borderRadius: 999,
+            position: 'absolute', top: BADGE_INSET, right: BADGE_INSET,
+            width: BADGE, height: BADGE, borderRadius: 999,
             background: 'var(--panel)', color: 'var(--ink-3)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             border: '1px solid var(--line-strong)', boxShadow: 'var(--shadow)'
           }}>
-            <Icon name="pause" size={9} />
+            <Icon name="pause" size={BADGE_ICON} />
           </span>
         )}
       </div>
