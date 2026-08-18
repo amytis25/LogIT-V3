@@ -154,3 +154,8 @@ design_handoff/ read-only visual reference the UI was built from
 Working and in daily use, but it's a personal project shared with friends — not a supported product.
 It has no auto-update, no crash reporting, and no way to phone home. If it breaks, your data is
 still sitting there in plain CSV files, which was rather the point.
+
+## License
+
+[MIT](LICENSE) — use it, change it, share it, build your own thing from it. It comes with no
+warranty of any kind.
