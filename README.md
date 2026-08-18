@@ -21,7 +21,7 @@ Plus a dashboard, 7/14/30-day analytics, and small editors for your category and
 
 ## Install (Windows)
 
-Grab the latest from the [**Releases**](https://github.com/amytis25/LogIT_Rebuild/releases) page:
+Grab the latest from the [**Releases**](https://github.com/amytis25/LogIT-V3/releases) page:
 
 - **`LogIT Setup <version>.exe`** — normal installer, adds a Start-menu entry.
 - **`LogIT <version>.exe`** — portable single file; just run it, nothing is installed.
@@ -42,8 +42,8 @@ There's no prebuilt Mac download, because Mac apps can only be built on a Mac. B
 two commands:
 
 ```bash
-git clone https://github.com/amytis25/LogIT_Rebuild.git
-cd LogIT_Rebuild
+git clone https://github.com/amytis25/LogIT-V3.git
+cd LogIT-V3
 npm install
 npm run dist
 ```

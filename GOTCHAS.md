@@ -36,7 +36,7 @@ would. Blunt, symptom first. Record what was **tried and didn't work**, not just
   their session was INACTIVE at the time, so nothing was lost, but that was luck rather than care.
 
 - **`Documents` is OneDrive-redirected on this machine.** `app.getPath('documents')` resolves to
-  `C:\Users\amyti\OneDrive\Documents`, NOT `C:\Users\amyti\Documents`. Anything that verifies log files
+  `C:\Users\<you>\OneDrive\Documents`, NOT `C:\Users\<you>\Documents`. Anything that verifies log files
   from outside the app must ask Electron (or check both); a hardcoded `~/Documents` path reports
   "no file" while the app is happily writing. Cost ~15 min of "why is the file missing".
 - **Sandboxed preload scripts must be CommonJS.** With `"type": "module"` in package.json the preload
