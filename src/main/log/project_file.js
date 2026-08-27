@@ -20,8 +20,12 @@ import {
 //              daily log — sanitizing here, at the one place a path is built,
 //              is what keeps the two from having to agree (SPEC §3.1).
 //              Replace, then trim, then check reserved: 'CON.' must still be
-//              caught. Separators are replaced rather than dropped, so no name
-//              can climb out of the Projects folder.
+//              caught. Windows reserves a device name for the segment before
+//              the first dot regardless of what follows, so 'CON.notes' is
+//              exactly as unwritable as bare 'CON' — the check must run on
+//              that leading segment, not the whole trimmed name. Separators
+//              are replaced rather than dropped, so no name can climb out of
+//              the Projects folder.
 // Inputs:  name — any string (null/undefined tolerated)
 // Outputs: a writable name, or '' when the name has no writable form
 export function sanitizePathName(name) {
@@ -29,8 +33,9 @@ export function sanitizePathName(name) {
   // Windows silently drops trailing dots and spaces, so a name ending in them
   // would resolve to a different file than the one we think we wrote.
   const trimmed = replaced.trim().replace(/[. ]+$/, '');
+  const baseBeforeFirstDot = trimmed.split('.')[0];
   let safe = trimmed;
-  if (WINDOWS_RESERVED_NAMES.includes(trimmed.toUpperCase())) {
+  if (WINDOWS_RESERVED_NAMES.includes(baseBeforeFirstDot.toUpperCase())) {
     safe = RESERVED_NAME_PREFIX + trimmed;
   }
   return safe;

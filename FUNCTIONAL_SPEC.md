@@ -164,8 +164,9 @@ AppLog/Projects/<Category>/<Project>.csv
   timeout-closed rows (which carry `window timed out` and no details), skipped rows, and manual entries with
   a blank project therefore never appear in a project file.
 - Category and project names stay unrestricted. When the path is built, `\ / : * ? " < > |` and control
-  characters become `-`, trailing dots and spaces are trimmed, and Windows reserved names (`CON`, `COM1`, …)
-  gain a `_` prefix. Two names that sanitize identically share a file; the daily log keeps the exact names.
+  characters become `-`, trailing dots and spaces are trimmed, and Windows reserved names (`CON`, `COM1`, …),
+  with or without an extension, gain a `_` prefix. Two names that sanitize identically share a file; the
+  daily log keeps the exact names.
 - **The daily log is always written regardless of this setting**, and remains the system of record. The
   mirror is never read back by the app.
 

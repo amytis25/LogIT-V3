@@ -62,6 +62,24 @@ test('sanitize: reserved device names gain a prefix, keeping their case', () => 
   assert.equal(sanitizePathName('CONTEXT'), 'CONTEXT');
 });
 
+test('sanitize: a reserved name is still reserved with an extension', () => {
+  // Windows reserves the segment before the first dot, regardless of what
+  // follows it — 'CON.notes' is exactly as unwritable as bare 'CON'.
+  assert.equal(sanitizePathName('CON.notes'), '_CON.notes');
+  assert.equal(sanitizePathName('AUX.report'), '_AUX.report');
+  assert.equal(sanitizePathName('com1.2026'), '_com1.2026');
+});
+
+test('sanitize: a name that merely starts with a reserved word is untouched', () => {
+  assert.equal(sanitizePathName('CONTEXT.md'), 'CONTEXT.md');
+});
+
+test('sanitize: an illegal-only name sanitizes to dashes, not empty', () => {
+  // Separators are replaced, not dropped, so this is writable — unlike a name
+  // that trims away to nothing, which returns ''.
+  assert.equal(sanitizePathName('///'), '---');
+});
+
 test('sanitize: a name with no writable form returns empty', () => {
   assert.equal(sanitizePathName('...'), '');
   assert.equal(sanitizePathName('   '), '');
