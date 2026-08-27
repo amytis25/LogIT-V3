@@ -147,6 +147,28 @@ AppLog/
 Every write must survive the file being temporarily locked by another program: retry
 a small number of times with a short backoff before reporting failure upward.
 
+**The optional project mirror.** When the log format setting (§3.2) is `daily+project`, every *completed*
+entry is additionally appended to a per-project file:
+
+```
+AppLog/Projects/<Category>/<Project>.csv
+```
+
+- Header row, exactly: `date,start_time,end_time,additional_notes`. The category and project are the folder
+  and file name, so they are not columns; there is no `mode` column.
+- `date` is the date of the daily file the row lives in, so a block spanning midnight files under its start
+  date, exactly as the daily log does.
+- Same conventions as the daily file: RFC 4180 quoting, CRLF, UTF-8, literal empty fields.
+- Rows are appended in write order and never re-sorted, so a manual back-fill lands after later-dated rows.
+- A row is mirrored **only when complete** — it has an end time, a category, and a project. Open rows,
+  timeout-closed rows (which carry `window timed out` and no details), skipped rows, and manual entries with
+  a blank project therefore never appear in a project file.
+- Category and project names stay unrestricted. When the path is built, `\ / : * ? " < > |` and control
+  characters become `-`, trailing dots and spaces are trimmed, and Windows reserved names (`CON`, `COM1`, …)
+  gain a `_` prefix. Two names that sanitize identically share a file; the daily log keeps the exact names.
+- **The daily log is always written regardless of this setting**, and remains the system of record. The
+  mirror is never read back by the app.
+
 ### 3.2 Settings
 
 A single small settings file, human-readable, saved immediately on every change.

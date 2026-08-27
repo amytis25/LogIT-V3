@@ -25,9 +25,10 @@ export const PROJECTS_DIR_NAME = 'Projects';
 export const PROJECT_LOG_COLUMNS = ['date', 'start_time', 'end_time', 'additional_notes'];
 export const PROJECT_LOG_HEADER_LINE = PROJECT_LOG_COLUMNS.join(',');
 
-// Characters Windows forbids in a file name, plus control characters. Used ONLY
-// with String.replace — never with .test(), which would carry lastIndex between
-// calls on a /g regex and return alternating answers.
+// Characters Windows forbids in a file name, plus control characters.
+// String.replace resets lastIndex when it finishes, so sharing this compiled
+// /g regex across calls is safe. Do not call .test() or .exec() on it: those
+// leave lastIndex mid-string and return alternating answers on the next call.
 export const ILLEGAL_PATH_CHARS_RE = /[\\/:*?"<>|\x00-\x1f]/g;
 export const PATH_NAME_REPLACEMENT = '-';
 // Reserved device names: a file called CON.csv is still CON to Windows.
