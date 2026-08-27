@@ -84,9 +84,12 @@ happens only when a path is built:
 | Control characters → `-` | |
 | Trailing dots and spaces trimmed | `Notes.` → `Notes` |
 | Windows reserved names get a `_` prefix | `CON` → `_CON`, `COM1` → `_COM1` |
-| Empty after sanitizing → **mirror failure**, not a silent skip | `///` → `` — reported per §6 |
+| Empty after sanitizing → **mirror failure**, not a silent skip | `...` → `` — reported per §6 |
 
-A name consisting only of illegal characters has no writable file name. That is a mirror *failure*, reported
+Order matters: replace, then trim, then check reserved names (`CON.` → `CON` → `_CON`). Because separators are
+replaced rather than dropped, `..` sanitizes to empty and path traversal out of `Projects/` is impossible.
+
+A name that is only dots or only whitespace has no writable file name. That is a mirror *failure*, reported
 like any other (§6) — never a silent skip, which would drop attributed work with nothing said (CLAUDE.md §4.4).
 The §4 skip rules are about rows that legitimately have nothing to file; this is a row that should have been
 filed and couldn't be.
