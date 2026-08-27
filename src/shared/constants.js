@@ -16,6 +16,35 @@ export const APPLOG_DIR_NAME = 'AppLog';
 export const WRITE_PROBE_FILE_NAME = '.logit-write-test';
 export const LEGACY_CSVS_DIR_NAME = 'CSVs';       // old layout: .../MM-Month/CSVs/date.csv
 export const SETTINGS_FILE_NAME = 'settings.json';
+
+// ── Project log mirror (SPEC §3.1 — the optional second format) ─────────────
+// A per-project CSV under AppLog/Projects/<Category>/<Project>.csv. Four
+// columns: the category and project are the folder and file name, so they are
+// not repeated inside the file.
+export const PROJECTS_DIR_NAME = 'Projects';
+export const PROJECT_LOG_COLUMNS = ['date', 'start_time', 'end_time', 'additional_notes'];
+export const PROJECT_LOG_HEADER_LINE = PROJECT_LOG_COLUMNS.join(',');
+
+// Characters Windows forbids in a file name, plus control characters. Used ONLY
+// with String.replace — never with .test(), which would carry lastIndex between
+// calls on a /g regex and return alternating answers.
+export const ILLEGAL_PATH_CHARS_RE = /[\\/:*?"<>|\x00-\x1f]/g;
+export const PATH_NAME_REPLACEMENT = '-';
+// Reserved device names: a file called CON.csv is still CON to Windows.
+export const WINDOWS_RESERVED_NAMES = [
+  'CON', 'PRN', 'AUX', 'NUL',
+  'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+  'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+];
+export const RESERVED_NAME_PREFIX = '_';
+
+// Mirror outcomes. A failure is an object; success and skip are these strings,
+// so callers can tell "nothing to do" from "should have worked and didn't".
+export const MIRROR_OK = 'ok';
+export const MIRROR_SKIPPED = 'skipped';
+export const MIRROR_REASON_UNWRITABLE_NAME = 'unwritable-name';
+export const MIRROR_REASON_WRITE_FAILED = 'write-failed';
+
 export const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
@@ -56,6 +85,12 @@ export const STATE_ACTIVE_NORMAL = 'ACTIVE_NORMAL';
 export const STATE_ACTIVE_FOCUS = 'ACTIVE_FOCUS';
 
 // ── Settings defaults (SPEC §3.2) ───────────────────────────────────────────
+// Which files an entry is written to. Daily is always written either way; the
+// choice is whether the project mirror is written as well (SPEC §3.2).
+export const LOG_FORMAT_DAILY = 'daily';
+export const LOG_FORMAT_DAILY_PLUS_PROJECT = 'daily+project';
+export const DEFAULT_LOG_FORMAT = LOG_FORMAT_DAILY;
+
 export const DEFAULT_CATEGORIES = ['Work', 'School', 'Homework', 'Club', 'Personal'];
 export const DEFAULT_PROJECTS = ['General'];
 export const DEFAULT_THEME = 'light';
