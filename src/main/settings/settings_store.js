@@ -51,10 +51,7 @@ export class SettingsStore {
       // the app can always find settings.json without first knowing logRoot.
       logRoot: typeof raw.logRoot === 'string' && raw.logRoot.trim() !== ''
         ? raw.logRoot : null,
-      // Which files an entry is written to. Anything unrecognised falls back to
-      // daily rather than to a format that might write nothing (SPEC §3.2).
-      logFormat: raw.logFormat === LOG_FORMAT_DAILY_PLUS_PROJECT
-        ? LOG_FORMAT_DAILY_PLUS_PROJECT : DEFAULT_LOG_FORMAT,
+      logFormat: normalizeLogFormat(raw.logFormat),
       intervalMinutes: Number(raw.intervalMinutes) || DEFAULT_INTERVAL_MIN,
       popupTimeoutSec: Number(raw.popupTimeoutSec) || DEFAULT_POPUP_TIMEOUT_SEC,
       theme: raw.theme === 'dark' ? 'dark' : DEFAULT_THEME,
@@ -104,8 +101,7 @@ export class SettingsStore {
   // Inputs:  format — 'daily' | 'daily+project'
   // Outputs: the stored (normalised) value
   setLogFormat(format) {
-    this.data.logFormat = format === LOG_FORMAT_DAILY_PLUS_PROJECT
-      ? LOG_FORMAT_DAILY_PLUS_PROJECT : DEFAULT_LOG_FORMAT;
+    this.data.logFormat = normalizeLogFormat(format);
     this.persist();
     return this.data.logFormat;
   }
@@ -174,6 +170,15 @@ export function snapInterval(minutes) {
     if (Math.abs(v - minutes) < Math.abs(best - minutes)) best = v;
   }
   return best;
+}
+
+// Description: which files an entry is written to. Anything unrecognised falls
+//              back to daily rather than to a format that might write nothing
+//              (SPEC §3.2).
+// Inputs:  value — any
+// Outputs: 'daily' | 'daily+project'
+export function normalizeLogFormat(value) {
+  return value === LOG_FORMAT_DAILY_PLUS_PROJECT ? LOG_FORMAT_DAILY_PLUS_PROJECT : DEFAULT_LOG_FORMAT;
 }
 
 // Description: guard for JSON-object settings sub-maps.
