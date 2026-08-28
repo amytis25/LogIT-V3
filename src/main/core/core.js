@@ -584,6 +584,10 @@ export class Core {
       // diverge would show a format the app isn't actually using. A failed save
       // leaves only the FILE stale, which the next successful save corrects.
       this.log.setProjectMirror(this.settings.mirrorEnabled);
+      // userAction() above refreshed with the PRE-change snapshot, so push the
+      // real one now — otherwise the dashboard chip keeps showing the old format
+      // until some unrelated event happens to re-sync it.
+      this.surface.refresh();
     }
     return stored;
   }

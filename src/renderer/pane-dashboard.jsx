@@ -22,6 +22,10 @@ import {
   Btn, EngagementPausedPill, ErrorBanner, IntervalChips, Label, Segmented, useTick
 } from './widgets.jsx';
 
+// Shared style for the small explanatory hints under the log-location controls
+// (LOG FORMAT and LOG FOLDER) — was duplicated inline at both sites (CLAUDE §6.3).
+const HINT_STYLE = { marginTop: 6, fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.45 };
+
 // Description: elapsed seconds since an 'HH:MM' start (today, or yesterday if
 //              start is later than now).
 // Inputs:  startHHMM
@@ -147,7 +151,7 @@ function LogLocationPanel({ root, isDefault, format }) {
             ]}
           />
         </div>
-        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+        <div style={HINT_STYLE}>
           {format === LOG_FORMAT_DAILY_PLUS_PROJECT ? (
             <>Finished entries are also appended to{' '}
               <span style={{ fontFamily: 'var(--font-mono)' }}>
@@ -156,7 +160,7 @@ function LogLocationPanel({ root, isDefault, format }) {
               Entries logged before you turned this on stay only in the daily files.</>
           ) : (
             <>Entries go to the daily <span style={{ fontFamily: 'var(--font-mono)' }}>.csv</span> only.
-              Add project files to also keep one CSV per project, grouped by category.</>
+              Switch to Daily + Project to also keep one CSV per project, grouped by category.</>
           )}
         </div>
       </div>
@@ -173,7 +177,7 @@ function LogLocationPanel({ root, isDefault, format }) {
           {busy ? 'Choosing…' : 'Change…'}
         </Btn>
       </div>
-      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+      <div style={HINT_STYLE}>
         Your daily <span style={{ fontFamily: 'var(--font-mono)' }}>.csv</span> files live in an{' '}
         <span style={{ fontFamily: 'var(--font-mono)' }}>AppLog</span> folder here. Changing this
         starts writing to the new place — existing logs stay where they are, so move the old{' '}

@@ -664,6 +664,17 @@ test('the log format reaches the state snapshot for the dashboard', () => {
   assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
 });
 
+test('the chip-driving snapshot pushed to the surface carries the NEW format, not the pre-change one', () => {
+  const { core, surface } = makeCore();
+  // fakeSurface's own refresh() records nothing, so capture the value visible
+  // AT THE MOMENT each refresh() fires — that is what a controlled chip
+  // actually renders from, not what getState() says after the fact.
+  const seenAtRefresh = [];
+  surface.refresh = () => seenAtRefresh.push(core.getState().logFormat);
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  assert.equal(seenAtRefresh.at(-1), LOG_FORMAT_DAILY_PLUS_PROJECT);
+});
+
 test('a failed settings save still keeps the log layer in step with the in-memory format, and still registers the user action', async () => {
   const { core, time, log, settings } = makeCore();
   // Drive into PAUSED the same way the engagement tests do, rather than
