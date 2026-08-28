@@ -1,10 +1,12 @@
 // log_store.js
 // Description: the log layer — THE ONLY code that knows where log files live or
-//              how the daily-file folder tree is shaped (CLAUDE.md §5.1), plus
-//              the path for the optional per-project mirror. Reads both the
-//              current layout (AppLog/YYYY/MM-Month/YYYY-MM-DD.csv) and the
-//              legacy one (.../MM-Month/CSVs/YYYY-MM-DD.csv); writes go to
+//              how the daily-file folder tree is shaped (CLAUDE.md §5.1). Reads
+//              both the current layout (AppLog/YYYY/MM-Month/YYYY-MM-DD.csv) and
+//              the legacy one (.../MM-Month/CSVs/YYYY-MM-DD.csv); writes go to
 //              whichever file already holds the day, else the current layout.
+//              Also writes the optional per-project mirror file
+//              (AppLog/Projects/<Category>/<Project>.csv) alongside the daily
+//              row whenever a completed row and the setting both allow it.
 //              Every write retries on lock errors, and every in-place rewrite
 //              goes through a temp file + rename so an interruption can never
 //              truncate a day (GOTCHAS "Rewriting the whole file...").
@@ -18,11 +20,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   APPLOG_DIR_NAME, LEGACY_CSVS_DIR_NAME, LOG_COLUMNS, LOG_HEADER_LINE,
-  LOG_LINE_ENDING, MONTH_NAMES, PROJECTS_DIR_NAME, WRITE_PROBE_FILE_NAME,
-  WRITE_RETRY_ATTEMPTS, WRITE_RETRY_BACKOFF_MS
+  LOG_LINE_ENDING, MIRROR_OK, MIRROR_REASON_UNWRITABLE_NAME,
+  MIRROR_REASON_WRITE_FAILED, MIRROR_SKIPPED, MONTH_NAMES, PROJECT_LOG_HEADER_LINE,
+  PROJECTS_DIR_NAME, WRITE_PROBE_FILE_NAME, WRITE_RETRY_ATTEMPTS, WRITE_RETRY_BACKOFF_MS
 } from '../../shared/constants.js';
 import { parseCsv, serializeLine, serializeLines } from './csv.js';
-import { sanitizePathName } from './project_file.js';
+import { isMirrorable, projectRowFields, sanitizePathName } from './project_file.js';
 
 // Error thrown upward when a write still fails after the silent retries.
 export class LogWriteError extends Error {
@@ -56,7 +59,11 @@ export class LogStore {
 
   // Description: turn the project mirror on or off. Injected by main.js from
   //              the logFormat setting, the same way the root is — the log
-  //              layer must not read settings itself (CLAUDE.md §5.1).
+  //              layer must not read settings itself (CLAUDE.md §5.1). The
+  //              strict `=== true` check is deliberate: the setting originates
+  //              as JSON read off disk, so anything that isn't literally the
+  //              boolean `true` (a stray string, a stale format, a typo in a
+  //              hand-edited file) is treated as off rather than coerced.
   // Inputs:  enabled — boolean
   // Outputs: none
   setProjectMirror(enabled) {
@@ -83,7 +90,11 @@ export class LogStore {
 
   // Description: the project-mirror path for a category/project pair. Null when
   //              either name has no writable form, which is a reportable
-  //              failure rather than a silent skip (SPEC §3.1).
+  //              failure rather than a silent skip (SPEC §3.1). Note the
+  //              opposite meaning of null from `existingDayFile`'s: there,
+  //              null means "no file yet — fall back to the current layout", a
+  //              benign case; here it means "no writable path exists at all"
+  //              — an error the caller must report, never `??`-chained away.
   // Inputs:  category, project — the free-text names
   // Outputs: absolute file path, or null
   projectFilePath(category, project) {
@@ -171,44 +182,48 @@ export class LogStore {
   // ── writes ────────────────────────────────────────────────────────────────
 
   // Description: append a row to a day's file, creating file + header (and the
-  //              folder tree) if the day has no file yet.
+  //              folder tree) if the day has no file yet, then mirror it to the
+  //              project file if it is complete and the mirror is on.
   // Inputs:  dateStr — 'YYYY-MM-DD'; row — row object
-  // Outputs: Promise<void>; throws LogWriteError on persistent failure
+  // Outputs: Promise<{ mirror }>; throws LogWriteError if the DAILY write fails
   async appendRow(dateStr, row) {
     const existing = this.existingDayFile(dateStr);
+    const line = serializeLine(rowToFields(row)) + LOG_LINE_ENDING;
     if (existing !== null) {
-      const line = serializeLine(rowToFields(row)) + LOG_LINE_ENDING;
       await this.withRetry(() => fs.appendFileSync(existing, line, 'utf8'));
-      return;
+    } else {
+      const file = this.dayFilePath(dateStr);
+      const body = LOG_HEADER_LINE + LOG_LINE_ENDING + line;
+      await this.withRetry(() => {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, body, 'utf8');
+      });
     }
-    const file = this.dayFilePath(dateStr);
-    const body = LOG_HEADER_LINE + LOG_LINE_ENDING +
-      serializeLine(rowToFields(row)) + LOG_LINE_ENDING;
-    await this.withRetry(() => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      fs.writeFileSync(file, body, 'utf8');
-    });
+    return { mirror: await this.mirrorToProject(dateStr, row) };
   }
 
   // Description: patch the open row of a day (set end time and optionally the
   //              detail fields; the kind is set at open and never modified by
   //              this method unless explicitly passed, which callers must not
-  //              do — invariant CLAUDE.md §4.3).
+  //              do — invariant CLAUDE.md §4.3). A row that is complete after
+  //              the patch is mirrored to its project file.
   // Inputs:  dateStr — 'YYYY-MM-DD'
   //          patch — { end, category?, project?, notes? }
-  // Outputs: Promise<void>; throws Error if no open row; LogWriteError on I/O
+  // Outputs: Promise<{ mirror }>; throws Error if no open row; LogWriteError on I/O
   async updateOpenRow(dateStr, patch) {
     const open = this.findOpenRow(dateStr);
     if (open === null) throw new Error(`no open row on ${dateStr}`);
     const rows = this.readDay(dateStr);
-    rows[open.index] = {
+    const merged = {
       ...rows[open.index],
       end: patch.end,
       category: patch.category ?? rows[open.index].category,
       project: patch.project ?? rows[open.index].project,
       notes: patch.notes ?? rows[open.index].notes
     };
+    rows[open.index] = merged;
     await this.rewriteDay(dateStr, rows);
+    return { mirror: await this.mirrorToProject(dateStr, merged) };
   }
 
   // Description: delete the open row entirely (Skip / engagement / exit-Skip —
@@ -237,6 +252,39 @@ export class LogStore {
       fs.writeFileSync(temp, body, 'utf8');
       fs.renameSync(temp, file);
     });
+  }
+
+  // Description: write the project-mirror copy of a completed row (SPEC §3.1).
+  //              NEVER throws: the daily row is already safe on disk by the time
+  //              this runs, and a failed mirror must not undo or hide a saved
+  //              entry (CLAUDE.md §4.4). The caller reports the failure instead.
+  // Inputs:  dateStr — 'YYYY-MM-DD'; row — the completed row object
+  // Outputs: Promise<MIRROR_OK | MIRROR_SKIPPED | { failedName, reason }>
+  async mirrorToProject(dateStr, row) {
+    if (!this.projectMirror || !isMirrorable(row)) return MIRROR_SKIPPED;
+    const file = this.projectFilePath(row.category, row.project);
+    if (file === null) {
+      return {
+        failedName: `${row.category} / ${row.project}`,
+        reason: MIRROR_REASON_UNWRITABLE_NAME
+      };
+    }
+    const line = serializeLine(projectRowFields(dateStr, row)) + LOG_LINE_ENDING;
+    let outcome = MIRROR_OK;
+    try {
+      if (fs.existsSync(file)) {
+        await this.withRetry(() => fs.appendFileSync(file, line, 'utf8'));
+      } else {
+        const body = PROJECT_LOG_HEADER_LINE + LOG_LINE_ENDING + line;
+        await this.withRetry(() => {
+          fs.mkdirSync(path.dirname(file), { recursive: true });
+          fs.writeFileSync(file, body, 'utf8');
+        });
+      }
+    } catch {
+      outcome = { failedName: path.basename(file), reason: MIRROR_REASON_WRITE_FAILED };
+    }
+    return outcome;
   }
 
   // Description: run a write op, retrying on lock-style errors a few times with
