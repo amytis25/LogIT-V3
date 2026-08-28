@@ -1,7 +1,7 @@
 {
   "name": "logit",
   "productName": "LogIT",
-  "version": "3.0.4",
+  "version": "3.1.0",
   "description": "Single-user, local-only desktop time logger. The log is the product.",
   "license": "MIT",
   "type": "module",

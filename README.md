@@ -9,7 +9,7 @@ No account. No cloud. No database. No telemetry. *The log is the product.*
 [![License: MIT](https://img.shields.io/badge/License-MIT-5d7a5b.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-3a5a7a.svg)](#install)
 [![Electron + React 18](https://img.shields.io/badge/Electron-React%2018-a05a2c.svg)](#architecture)
-[![Tests](https://img.shields.io/badge/tests-64%20passing-5d7a5b.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-111%20passing-5d7a5b.svg)](#testing)
 
 </div>
 
@@ -37,6 +37,7 @@ what you actually did, while you still remember it.
 | **Manual entries** | Back-fill any past date after the fact |
 | **Analytics** | 7/14/30-day rollups, hours by category, time spent in focus |
 | **Libraries** | Editable category and project lists with stable per-name colours |
+| **Per-project files** | Optionally mirror finished entries into one CSV per project, grouped by category |
 | **Absence detection** | Walk away for an hour and it discards the unfinished block instead of inventing work |
 
 <table>
@@ -94,8 +95,9 @@ that nobody is there.
 ## Architecture
 
 ```
-  log layer      read / append / close / delete rows; owns the folder layout and
-                 file locking. THE ONLY code that knows where files live.
+  log layer      read / append / close / delete rows; owns the folder layout, the
+                 optional per-project mirror, and file locking. THE ONLY code
+                 that knows where files live.
   settings       load, save-on-change, interval snapping, colour assignment
   core           state machine + scheduler + the four timers. No UI imports, and
                  no clock it cannot be handed a fake for.
@@ -118,8 +120,8 @@ The rules that keep it that way:
 
 ```
 $ npm test
-# tests 64
-# pass 64
+# tests 111
+# pass 111
 # fail 0
 ```
 
@@ -156,6 +158,15 @@ Each of these is a case where the obvious implementation is wrong:
 - **Moving the log folder carries the open block across** — appending it to the new location before
   removing it from the old — because otherwise it would be stranded where the app could never close
   it, breaking the core invariant.
+- **Per-project files mirror; they are never a second source of truth.** A project CSV cannot hold an
+  *open* block — the project is not known until the block closes — so there is no project-only mode,
+  and the daily log is always written. One rule decides what gets mirrored: a row is copied exactly
+  when it has an end time, a category and a project. Timeouts, skips and half-filled entries fall out
+  of that rule on their own, with no special cases anywhere.
+- **A failed mirror warns in the toast and leaves the dashboard alone.** The usual cause is having the
+  project file open in Excel, which lasts hours — surfacing it the way a failed *save* is surfaced
+  would throw the window on screen at every single check-in. Nothing is lost when a mirror fails, so
+  the toast says so and the entry stands.
 
 ---
 
@@ -207,6 +218,7 @@ any window closes only that window — just **Quit** in the sidebar exits the ap
 Documents\LogIT\
   settings.json                             interval, theme, libraries, colours
   AppLog\2026\08-August\2026-08-18.csv      one file per day
+  AppLog\Projects\School\Capstone.csv       optional: one file per project
 ```
 
 ```csv
@@ -221,15 +233,28 @@ greppable, Excel-openable, yours. The app never deletes a closed row; the only t
 the single *unfinished* block. The dashboard has a **LOG FOLDER** field if you would rather keep them
 somewhere else.
 
+Set **LOG FORMAT** to `Daily + Project` and every finished entry is *also* appended to a file named
+for its project, inside a folder named for its category:
+
+```csv
+date,start_time,end_time,additional_notes
+2026-08-18,09:30,11:15,Convolution problems
+```
+
+The category and project are the folder and the file name, so they are not repeated inside. This is a
+mirror for reading, not a second source of truth — the daily files are still written, still complete,
+and still the only thing the app reads back. Switching it on does not backfill history, and switching
+it off leaves the files it already wrote alone.
+
 ---
 
 ## How this was built — an AI disclaimer
 
 Worth stating plainly, since you are deciding whether to run a stranger's software.
 
-**Written by Claude** (Anthropic's Claude Opus, across a single working session): essentially all of
-the code that runs — roughly **5,600 lines** across `src/` (state machine, scheduler, log layer,
-settings, every screen), `tests/` (~900 lines), the icon generator and the build configuration.
+**Written by Claude** (Anthropic's Claude Opus): essentially all of the code that runs — roughly
+**4,900 lines** across `src/` (state machine, scheduler, log layer, settings, every screen),
+`tests/` (~1,400 lines), the icon generator and the build configuration.
 
 **Specified, designed, directed and reviewed by [@amytis25](https://github.com/amytis25)** — the
 parts that decide what the software actually *is*:
@@ -244,7 +269,8 @@ parts that decide what the software actually *is*:
 - Every product decision and correction, found by using the real app daily: the dashboard must
   disappear once logging starts and only return when asked; the **X** must close a window rather than
   quit the app; the floating button was twice the size it should be; the log folder had to be
-  user-choosable.
+  user-choosable; and in 3.1.0, per-project files — including the calls on what happens to entries
+  that have no project, and what a half-failed write should say.
 
 So: a person specified it, designed it, used it daily and corrected it in rounds against a running
 build; a model did the typing. The judgement is hers; the bugs are the model's.
@@ -262,6 +288,7 @@ src/preload/    the narrow IPC bridge exposed to windows
 src/renderer/   React UI: shell + panes, popups, floating shortcut, toast
 tests/          node:test suites
 docs/PLAN.md    the phased implementation plan
+docs/superpowers/  per-feature design docs and implementation plans
 design_handoff/ read-only visual reference the UI was built from
 ```
 

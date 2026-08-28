@@ -5,7 +5,7 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-28 (newest) — optional per-project CSVs alongside the daily log
+## 2026-08-28 (newest) — optional per-project CSVs alongside the daily log (v3.1.0)
 
 **Change.** A second, optional logging format. With `LOG FORMAT` set to `Daily + Project` on the dashboard,
 every *completed* entry is also appended to `AppLog/Projects/<Category>/<Project>.csv` — four columns,
