@@ -9,7 +9,8 @@
 
 import React from 'react';
 import {
-  DASHBOARD_TIMELINE_MAX, FALLBACK_COLOR, STATE_ACTIVE_FOCUS, STATE_INACTIVE
+  DASHBOARD_TIMELINE_MAX, FALLBACK_COLOR, LOG_FORMAT_DAILY,
+  LOG_FORMAT_DAILY_PLUS_PROJECT, STATE_ACTIVE_FOCUS, STATE_INACTIVE
 } from '../shared/constants.js';
 import {
   durationMinutes, formatCountdown, formatElapsed, wrappedSpanMinutes
@@ -18,7 +19,7 @@ import { Icon } from './icons.jsx';
 import { shortDateLine } from './shell.jsx';
 import { hexAlpha, warmPalette } from './theme.jsx';
 import {
-  Btn, EngagementPausedPill, ErrorBanner, IntervalChips, Label, useTick
+  Btn, EngagementPausedPill, ErrorBanner, IntervalChips, Label, Segmented, useTick
 } from './widgets.jsx';
 
 // Description: elapsed seconds since an 'HH:MM' start (today, or yesterday if
@@ -109,13 +110,15 @@ function RightColumn({ spark, interval, compact }) {
   );
 }
 
-// Description: the log-folder field (SPEC §8.2) — shows where AppLog/ is being
-//              written and lets the user move it. Old files are never moved, so
-//              the hint says so plainly rather than letting history seem to
-//              vanish from the charts.
+// Description: the log-format chips and the log-folder field (SPEC §8.2) —
+//              together they answer "where does my data go", so they read as one
+//              group. Old files are never moved and project files are never
+//              backfilled, so both hints say so plainly rather than letting
+//              history seem to vanish.
 // Inputs:  root — current path; isDefault — whether it's the untouched default
+//          format — 'daily' | 'daily+project'
 // Outputs: element
-function LogLocationPanel({ root, isDefault }) {
+function LogLocationPanel({ root, isDefault, format }) {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -132,6 +135,31 @@ function LogLocationPanel({ root, isDefault }) {
       background: 'var(--panel-alt)', border: '1px solid var(--line)',
       borderRadius: 'var(--radius)'
     }}>
+      <div style={{ marginBottom: 14 }}>
+        <Label>LOG FORMAT</Label>
+        <div style={{ marginTop: 6 }}>
+          <Segmented
+            value={format}
+            onChange={(f) => window.logit.send('log-format-change', { format: f })}
+            options={[
+              { value: LOG_FORMAT_DAILY, label: 'Daily' },
+              { value: LOG_FORMAT_DAILY_PLUS_PROJECT, label: 'Daily + Project' }
+            ]}
+          />
+        </div>
+        <div style={{ marginTop: 6, fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+          {format === LOG_FORMAT_DAILY_PLUS_PROJECT ? (
+            <>Finished entries are also appended to{' '}
+              <span style={{ fontFamily: 'var(--font-mono)' }}>
+                {'Projects\\<Category>\\<Project>.csv'}
+              </span>.
+              Entries logged before you turned this on stay only in the daily files.</>
+          ) : (
+            <>Entries go to the daily <span style={{ fontFamily: 'var(--font-mono)' }}>.csv</span> only.
+              Add project files to also keep one CSV per project, grouped by category.</>
+          )}
+        </div>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <Label>LOG FOLDER{isDefault ? '' : ' · CUSTOM'}</Label>
@@ -295,7 +323,8 @@ export function DashboardPane({ state, shellError, onDismissError }) {
           </div>
           <div style={{ marginTop: 10 }}><SparkBars data={spark} height={64} /></div>
         </div>
-        <LogLocationPanel root={state.logRoot} isDefault={state.logRootIsDefault} />
+        <LogLocationPanel root={state.logRoot} isDefault={state.logRootIsDefault}
+          format={state.logFormat} />
       </div>
     );
   }
@@ -426,7 +455,8 @@ export function DashboardPane({ state, shellError, onDismissError }) {
         </div>
         <RightColumn spark={spark} interval={state.intervalMinutes} compact />
       </div>
-      <LogLocationPanel root={state.logRoot} isDefault={state.logRootIsDefault} />
+      <LogLocationPanel root={state.logRoot} isDefault={state.logRootIsDefault}
+        format={state.logFormat} />
     </div>
   );
 }
