@@ -1,9 +1,10 @@
 // log_store.js
 // Description: the log layer — THE ONLY code that knows where log files live or
-//              how the daily-file folder tree is shaped (CLAUDE.md §5.1). Reads
-//              both the current layout (AppLog/YYYY/MM-Month/YYYY-MM-DD.csv)
-//              and the legacy one (.../MM-Month/CSVs/YYYY-MM-DD.csv); writes go
-//              to whichever file already holds the day, else the current layout.
+//              how the daily-file folder tree is shaped (CLAUDE.md §5.1), plus
+//              the path for the optional per-project mirror. Reads both the
+//              current layout (AppLog/YYYY/MM-Month/YYYY-MM-DD.csv) and the
+//              legacy one (.../MM-Month/CSVs/YYYY-MM-DD.csv); writes go to
+//              whichever file already holds the day, else the current layout.
 //              Every write retries on lock errors, and every in-place rewrite
 //              goes through a temp file + rename so an interruption can never
 //              truncate a day (GOTCHAS "Rewriting the whole file...").
@@ -17,10 +18,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   APPLOG_DIR_NAME, LEGACY_CSVS_DIR_NAME, LOG_COLUMNS, LOG_HEADER_LINE,
-  LOG_LINE_ENDING, MONTH_NAMES, WRITE_PROBE_FILE_NAME,
+  LOG_LINE_ENDING, MONTH_NAMES, PROJECTS_DIR_NAME, WRITE_PROBE_FILE_NAME,
   WRITE_RETRY_ATTEMPTS, WRITE_RETRY_BACKOFF_MS
 } from '../../shared/constants.js';
 import { parseCsv, serializeLine, serializeLines } from './csv.js';
+import { sanitizePathName } from './project_file.js';
 
 // Error thrown upward when a write still fails after the silent retries.
 export class LogWriteError extends Error {
@@ -38,6 +40,7 @@ export class LogStore {
   // Outputs: none
   constructor(root, sleep = defaultSleep) {
     this.sleep = sleep;
+    this.projectMirror = false;   // off until main.js injects the setting
     this.setRoot(root);
   }
 
@@ -49,6 +52,15 @@ export class LogStore {
   setRoot(root) {
     this.root = root;
     this.appLogDir = path.join(root, APPLOG_DIR_NAME);
+  }
+
+  // Description: turn the project mirror on or off. Injected by main.js from
+  //              the logFormat setting, the same way the root is — the log
+  //              layer must not read settings itself (CLAUDE.md §5.1).
+  // Inputs:  enabled — boolean
+  // Outputs: none
+  setProjectMirror(enabled) {
+    this.projectMirror = enabled === true;
   }
 
   // ── paths (private) ───────────────────────────────────────────────────────
@@ -67,6 +79,21 @@ export class LogStore {
   legacyDayFilePath(dateStr) {
     const { year, monthDir } = dateDirs(dateStr);
     return path.join(this.appLogDir, year, monthDir, LEGACY_CSVS_DIR_NAME, `${dateStr}.csv`);
+  }
+
+  // Description: the project-mirror path for a category/project pair. Null when
+  //              either name has no writable form, which is a reportable
+  //              failure rather than a silent skip (SPEC §3.1).
+  // Inputs:  category, project — the free-text names
+  // Outputs: absolute file path, or null
+  projectFilePath(category, project) {
+    const categoryDir = sanitizePathName(category);
+    const projectName = sanitizePathName(project);
+    let file = null;
+    if (categoryDir !== '' && projectName !== '') {
+      file = path.join(this.appLogDir, PROJECTS_DIR_NAME, categoryDir, `${projectName}.csv`);
+    }
+    return file;
   }
 
   // Description: the file that holds a day's rows: existing current-layout file
