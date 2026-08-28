@@ -177,6 +177,7 @@ A single small settings file, human-readable, saved immediately on every change.
 | Setting | Values | Default | Notes |
 |---|---|---|---|
 | Log folder | absolute directory path | the default data root | *(added 2026-08-17)* Where `AppLog/` is written. The settings file itself always stays at the default root, so it can be found without first knowing this value |
+| Log format | `daily` \| `daily+project` | `daily` | *(added 2026-08-27)* Whether completed entries are also mirrored to `AppLog/Projects/<Category>/<Project>.csv` (§3.1). The daily log is written either way. Unrecognised values fall back to `daily` |
 | Check-in interval | one of **10, 15, 20, 30, 45, 60** minutes | 20 | Any stored value outside the set is snapped to the nearest allowed value on load and re-saved |
 | Popup timeout | seconds | 60 | Applies to every popup countdown |
 | Theme | `light` \| `dark` | `light` | Global; toggled from any window |

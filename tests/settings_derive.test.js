@@ -16,7 +16,7 @@ import {
   formatElapsed, formatCountdown, formatClock, rollup,
   isValidHHMM, isValidDate
 } from '../src/shared/derive.js';
-import { COLOR_PALETTE } from '../src/shared/constants.js';
+import { COLOR_PALETTE, LOG_FORMAT_DAILY, LOG_FORMAT_DAILY_PLUS_PROJECT } from '../src/shared/constants.js';
 
 function scratchRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'logit-settings-'));
@@ -69,6 +69,36 @@ test('library growth adds unseen names once; removal never touches colours', () 
   assert.equal(store.addToLibrary('category', '   '), false);      // blank no-op
   store.removeFromLibrary('category', 'Thesis');
   assert.equal(store.data.categories.includes('Thesis'), false);
+});
+
+// ── log format (SPEC §3.2) ──────────────────────────────────────────────────
+
+test('log format defaults to daily-only', () => {
+  const s = new SettingsStore(fs.mkdtempSync(path.join(os.tmpdir(), 'logit-fmt-')));
+  assert.equal(s.data.logFormat, LOG_FORMAT_DAILY);
+});
+
+test('an unknown log format normalises to daily rather than disabling logging', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'logit-fmt-'));
+  fs.writeFileSync(path.join(root, 'settings.json'),
+    JSON.stringify({ logFormat: 'project-only' }), 'utf8');
+  const s = new SettingsStore(root);
+  assert.equal(s.data.logFormat, LOG_FORMAT_DAILY);
+});
+
+test('setting the log format persists across a reload', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'logit-fmt-'));
+  const s = new SettingsStore(root);
+  assert.equal(s.setLogFormat(LOG_FORMAT_DAILY_PLUS_PROJECT), LOG_FORMAT_DAILY_PLUS_PROJECT);
+  assert.equal(new SettingsStore(root).data.logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
+});
+
+test('setting an unknown log format stores daily, never the unknown value', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'logit-fmt-'));
+  const s = new SettingsStore(root);
+  s.setLogFormat(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  assert.equal(s.setLogFormat('project-only'), LOG_FORMAT_DAILY);
+  assert.equal(new SettingsStore(root).data.logFormat, LOG_FORMAT_DAILY);
 });
 
 // ── derived numbers (SPEC §9) ───────────────────────────────────────────────

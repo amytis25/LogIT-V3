@@ -12,7 +12,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   ALLOWED_INTERVALS_MIN, COLOR_PALETTE, DEFAULT_CATEGORIES, DEFAULT_INTERVAL_MIN,
-  DEFAULT_POPUP_TIMEOUT_SEC, DEFAULT_PROJECTS, DEFAULT_THEME, SETTINGS_FILE_NAME
+  DEFAULT_LOG_FORMAT, DEFAULT_POPUP_TIMEOUT_SEC, DEFAULT_PROJECTS, DEFAULT_THEME,
+  LOG_FORMAT_DAILY_PLUS_PROJECT, SETTINGS_FILE_NAME
 } from '../../shared/constants.js';
 
 export class SettingsStore {
@@ -50,6 +51,10 @@ export class SettingsStore {
       // the app can always find settings.json without first knowing logRoot.
       logRoot: typeof raw.logRoot === 'string' && raw.logRoot.trim() !== ''
         ? raw.logRoot : null,
+      // Which files an entry is written to. Anything unrecognised falls back to
+      // daily rather than to a format that might write nothing (SPEC §3.2).
+      logFormat: raw.logFormat === LOG_FORMAT_DAILY_PLUS_PROJECT
+        ? LOG_FORMAT_DAILY_PLUS_PROJECT : DEFAULT_LOG_FORMAT,
       intervalMinutes: Number(raw.intervalMinutes) || DEFAULT_INTERVAL_MIN,
       popupTimeoutSec: Number(raw.popupTimeoutSec) || DEFAULT_POPUP_TIMEOUT_SEC,
       theme: raw.theme === 'dark' ? 'dark' : DEFAULT_THEME,
@@ -92,6 +97,17 @@ export class SettingsStore {
   setLogRoot(root) {
     this.data.logRoot = root === this.defaultRoot ? null : root;
     this.persist();
+  }
+
+  // Description: choose whether the project mirror is written alongside the
+  //              daily log. The daily log is written either way (SPEC §3.1).
+  // Inputs:  format — 'daily' | 'daily+project'
+  // Outputs: the stored (normalised) value
+  setLogFormat(format) {
+    this.data.logFormat = format === LOG_FORMAT_DAILY_PLUS_PROJECT
+      ? LOG_FORMAT_DAILY_PLUS_PROJECT : DEFAULT_LOG_FORMAT;
+    this.persist();
+    return this.data.logFormat;
   }
 
   // Description: set the theme and save.
