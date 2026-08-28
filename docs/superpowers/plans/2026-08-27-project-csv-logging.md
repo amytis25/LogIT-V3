@@ -1002,6 +1002,23 @@ test('a failed project mirror on a manual entry warns in the toast', async () =>
   assert.equal(rows[0].notes, 'back-filled');
 });
 
+test('an unwritable name gets its own sentence, not "couldn’t be updated"', async () => {
+  const { core, time, surface, log, today } = makeCore();
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  await core.startLogging();
+  await time.advance(20 * MIN);
+  // A category of only dots has no writable file name at all, so no file was
+  // ever built — saying one "couldn't be updated" would be untrue.
+  await core.checkinSubmit({ category: '...', project: 'Capstone', notes: 'kept' });
+  const [, text] = surface.last('toast');
+  assert.match(text, /can’t be used as a folder and file name/);
+  assert.doesNotMatch(text, /couldn’t be updated/);
+  // Saved regardless: the daily log took the entry with the exact typed name.
+  const rows = log.readDay(today);
+  assert.equal(rows[0].category, '...');
+  assert.equal(rows[0].notes, 'kept');
+});
+
 test('the log format reaches the state snapshot for the dashboard', () => {
   const { core } = makeCore();
   assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY);
@@ -1020,8 +1037,8 @@ Expected: FAIL — `core.logFormatChange is not a function`
 
 - [ ] **Step 3: Add the toast helper**
 
-In `src/main/core/core.js`, add `LOG_FORMAT_DAILY_PLUS_PROJECT` to the constants import, and add this
-module-level helper at the bottom of the file, after the class:
+In `src/main/core/core.js`, add `LOG_FORMAT_DAILY_PLUS_PROJECT` and `MIRROR_REASON_WRITE_FAILED` to the
+constants import, and add this module-level helper at the bottom of the file, after the class:
 
 ```javascript
 // Description: the toast text for a saved entry. The mirror is a convenience,
@@ -1030,17 +1047,29 @@ module-level helper at the bottom of the file, after the class:
 //              shell is deliberately NOT opened: the likeliest cause is the
 //              project file being open in Excel for hours, which would throw the
 //              dashboard on screen at every check-in (design doc §6).
+//              The two failures get different sentences because they are
+//              different problems: a write failure names a file that exists and
+//              may free up on its own, while an unwritable name names something
+//              only the user can fix by renaming — and saying a nonexistent file
+//              "couldn't be updated" would be a plain lie.
 // Inputs:  successText — the normal confirmation
 //          mirror — MIRROR_OK | MIRROR_SKIPPED | { failedName, reason }
 // Outputs: string
 function savedToastText(successText, mirror) {
   let text = successText;
   if (mirror !== null && typeof mirror === 'object') {
-    text = `Saved — but ${mirror.failedName} couldn’t be updated.`;
+    text = mirror.reason === MIRROR_REASON_WRITE_FAILED
+      ? `Saved — but ${mirror.failedName} couldn’t be updated.`
+      : `Saved — but “${mirror.failedName}” can’t be used as a folder and file name.`;
   }
   return text;
 }
 ```
+
+**Why two sentences.** `failedName` carries a file name (`Capstone.csv`) for a write failure but the typed
+category and project (`School / ...`) when a name has no writable form — because in that case no file was
+ever built. Interpolating both into "… couldn't be updated" would tell the user a file failed to update when
+no such file exists. Keep the shapes as they are in the log layer and branch here, where the wording lives.
 
 - [ ] **Step 4: Return the mirror result from `closeOpenRow`**
 
