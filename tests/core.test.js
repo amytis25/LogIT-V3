@@ -657,6 +657,40 @@ test('an unwritable name gets its own sentence, not "couldn’t be updated"', as
   assert.equal(rows[0].notes, 'kept');
 });
 
+test('changing the log folder mid-session with the mirror on never mirrors the carried-over open row', async () => {
+  const { core, log, root, today } = makeCore();
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  await core.startLogging();
+
+  const newRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'logit-newroot-'));
+  const res = await core.changeLogRoot(newRoot);
+  assert.equal(res.ok, true);
+
+  // The carried row has no end/category/project (isMirrorable is false), so
+  // the move must create no Projects/ folder anywhere — not in the old root
+  // (which never mirrors) and not in the new one (a coincidence this guards).
+  assert.equal(fs.existsSync(path.join(root, 'AppLog', 'Projects')), false);
+  assert.equal(fs.existsSync(path.join(newRoot, 'AppLog', 'Projects')), false);
+
+  // The open block genuinely carried across: present in the new root, gone
+  // from the old one — read through the log layer's own methods, not the fs.
+  assert.equal(log.root, newRoot);
+  assert.equal(log.findOpenRow(today).row.start, '14:00');
+  const oldStore = new LogStore(root, () => Promise.resolve());
+  assert.equal(oldStore.findOpenRow(today), null);
+
+  // Completing the block afterwards mirrors exactly once, in the NEW root.
+  await core.logActivity();
+  await core.checkinSubmit({ category: 'Work', project: 'LogIT', notes: 'after move' });
+
+  assert.equal(fs.existsSync(path.join(root, 'AppLog', 'Projects')), false);
+  const mirrorFile = path.join(newRoot, 'AppLog', 'Projects', 'Work', 'LogIT.csv');
+  assert.equal(fs.existsSync(mirrorFile), true);
+  const mirrorLines = fs.readFileSync(mirrorFile, 'utf8').trim().split(/\r?\n/);
+  assert.equal(mirrorLines.length, 2);   // header + exactly one project row
+  assert.match(mirrorLines[1], /after move/);
+});
+
 test('the log format reaches the state snapshot for the dashboard', () => {
   const { core } = makeCore();
   assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY);

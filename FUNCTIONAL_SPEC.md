@@ -1099,6 +1099,8 @@ The rebuild is functionally complete when all of these pass by hand:
 - [ ] With the project CSV open in Excel, a check-in still saves: the popup closes, the toast names the file
       that couldn't be updated, and the dashboard does NOT open.
 - [ ] A category containing `:` produces a folder with `-`, and the daily row keeps the exact typed name.
+- [ ] Changing the log folder mid-session with `Daily + Project` on: the open block carries over and creates
+      no project file; the next completed entry lands in the new folder's `Projects/`.
 
 **Reading**
 - [ ] Analytics totals match hand-computed totals from the raw files.
