@@ -5,7 +5,51 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-17 (newest) — the log folder is user-choosable from the dashboard (v3.0.4)
+## 2026-08-28 (newest) — optional per-project CSVs alongside the daily log
+
+**Change.** A second, optional logging format. With `LOG FORMAT` set to `Daily + Project` on the dashboard,
+every *completed* entry is also appended to `AppLog/Projects/<Category>/<Project>.csv` — four columns,
+`date,start_time,end_time,additional_notes`, with the category and project carried by the folder and file
+name. `FUNCTIONAL_SPEC.md` §3.1, §3.2, §8.2 and §13 updated.
+
+**The daily log is always written, and there is no project-only mode.** A project CSV cannot hold an open
+row — the project isn't known until the block *closes* — so switching daily writes off would mean relocating
+the open block into a new state file, rewriting the `ACTIVE ⟺ one open row exists` invariant (CLAUDE.md
+§4.2), and giving every pane a second read path. Roughly three times the work, to delete files the user
+already keeps. The mirror is additive and is never read back by the app.
+
+**Four decisions worth recording:**
+
+- **One completeness predicate, not per-event special cases.** A row is mirrored exactly when
+  `end`, `category`, and `project` are all non-empty. That single rule delivers every required behaviour on
+  its own: open rows, timeout-closed rows (no details), skipped rows, and manual entries with a blank
+  project all fall out as non-mirrored without a line of special-casing. It lives in two `LogStore` methods
+  — `appendRow` and `updateOpenRow` — and nowhere else.
+- **A mirror failure warns in the toast, never via `notifyError`.** `notifyError` calls `showShell()`, and
+  the likeliest cause of a mirror failure is the user having that project's CSV open in Excel for hours —
+  which would throw the dashboard on screen at *every* check-in, against the 2026-08-17 "only the shortcut
+  is on screen" decision. Nothing is lost when a mirror fails (the daily log has the entry), so the toast is
+  the proportionate channel; it replaces the "Logged" confirmation rather than joining it.
+- **The two failure reasons get different sentences.** A write failure names a file that exists and may free
+  up on its own; an unwritable name names something only the user can fix by renaming. Telling the user a
+  nonexistent file "couldn't be updated" would be a plain lie, so `savedToastText` branches on the reason.
+- **Names are sanitized at the path, not restricted at the keyboard.** Categories and projects stay free
+  text everywhere and in the daily log; `\ / : * ? " < > |` become `-` only when a path is built, and
+  reserved device names (`CON`, `COM1`, …) gain a `_` prefix **with or without an extension** — `CON.notes`
+  is reserved on Windows too. Two names that sanitize alike share a file — accepted, versus a persisted
+  name→filename map in settings.
+
+**Accepted limits.** A project CSV has no `mode` column, so it cannot distinguish focus from normal work;
+analytics keep reading daily files. There is no backfill and no reconciliation — toggle the setting or lose
+one mirror write to a locked file, and that project file is permanently missing those rows with nothing that
+notices. The daily log is complete in every case.
+
+**Invalidates:** nothing. The frozen six-column daily format, the folder tree, and every read path are
+unchanged.
+
+---
+
+## 2026-08-17 — the log folder is user-choosable from the dashboard (v3.0.4)
 
 **Change.** A `LOG FOLDER` field at the bottom of both dashboard looks shows where daily files are
 written and opens the OS folder picker to move them. `FUNCTIONAL_SPEC.md §3.2` and `§8.2` updated.

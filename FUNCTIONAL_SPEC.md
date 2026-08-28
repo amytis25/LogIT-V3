@@ -770,6 +770,16 @@ Two looks, chosen by whether a row is open.
 - **Log activity** (primary) and **Focus mode** buttons.
 - Right column: the same 7-day sparkline panel, plus the interval chips panel.
 
+**Log format control (both looks, above the log folder field)** *(added 2026-08-28)*. Two chips,
+`Daily` / `Daily + Project`, shown in both dashboard looks. Rules:
+
+- Switching to `Daily + Project` starts mirroring completed entries to
+  `AppLog/Projects/<Category>/<Project>.csv` from that moment; existing history is never
+  backfilled, and the hint text says so.
+- Switching back to `Daily` stops the mirror; existing project files are left alone.
+- The daily log is written either way — this control only ever adds a second file, never
+  replaces the first.
+
 **Log folder field (both looks, at the bottom)** *(added 2026-08-17)*. Shows the folder the
 daily files are being written to, with a `Change…` button opening the OS folder picker.
 Rules:
@@ -1079,6 +1089,16 @@ The rebuild is functionally complete when all of these pass by hand:
 - [ ] Adding a category makes it available in every combo immediately.
 - [ ] Removing a category does not alter any logged row.
 - [ ] A category keeps the same colour across restarts.
+
+**Project mirror**
+- [ ] With `Daily + Project` set, a check-in Submit writes both the daily row and a row in
+      `Projects/<Category>/<Project>.csv`, with matching times.
+- [ ] A second entry in the same project appends; the header appears once.
+- [ ] A popup timeout, a Skip, and a manual entry with a blank project write no project row.
+- [ ] With `Daily` set, no project file is created or touched.
+- [ ] With the project CSV open in Excel, a check-in still saves: the popup closes, the toast names the file
+      that couldn't be updated, and the dashboard does NOT open.
+- [ ] A category containing `:` produces a folder with `-`, and the daily row keeps the exact typed name.
 
 **Reading**
 - [ ] Analytics totals match hand-computed totals from the raw files.

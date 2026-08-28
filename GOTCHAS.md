@@ -144,6 +144,23 @@ would. Blunt, symptom first. Record what was **tried and didn't work**, not just
 - **A stored interval can be illegal.** Snap to the nearest allowed value on load and re-save, or the chip
   row renders with nothing selected and the user can't tell what the app is doing.
 
+## Project mirror
+
+- **A new `LogStore` is born with mirroring off, and nothing enforces otherwise.** `projectMirror`
+  defaults `false` in the constructor and only flips on when something calls `setProjectMirror(true)`.
+  Today that's two call sites — `main.js` at startup and `core.js`'s `logFormatChange` — and both apply
+  to the one long-lived store the rest of the app shares. Any *other* `LogStore` instance quietly skips
+  the setter and mirrors nothing, with no error anywhere: `mirrorToProject` just returns `MIRROR_SKIPPED`
+  and moves on.
+  **The live example:** `core.changeLogRoot` builds a throwaway `new LogStore(oldRoot)` purely to
+  `deleteOpenRow` the carried-over block from the folder being left behind. It never gets
+  `setProjectMirror` called on it. Safe today only because `deleteOpenRow` never mirrors anything — the
+  code doesn't mark that as deliberate, so it reads like an oversight, not a guarantee. If a future edit
+  ever had that instance write a *completed* row instead, the mirror would no-op silently.
+  **The rule:** any new `LogStore` that can write a completed row (append or update-open-row) must be
+  handed `setProjectMirror` from the same setting `main.js` uses, or its mirror writes vanish with
+  nothing to notice.
+
 ## Testing
 
 - **The core must be testable without a display.** The old build's only test file covered the scheduler,
