@@ -18,6 +18,7 @@
 import {
   CTX_EXIT_PROMPT, CTX_FOCUS_END, CTX_FOCUS_INTERRUPT, CTX_INTERVAL, CTX_OFF_CYCLE,
   ENGAGEMENT_TIMEOUT_MS, KIND_FOCUS, KIND_MANUAL, KIND_NORMAL,
+  LOG_FORMAT_DAILY_PLUS_PROJECT, MIRROR_REASON_WRITE_FAILED,
   STATE_ACTIVE_FOCUS, STATE_ACTIVE_NORMAL, STATE_INACTIVE,
   SUBMIT_MAX_ATTEMPTS, TIMED_OUT_NOTE
 } from '../../shared/constants.js';
@@ -176,11 +177,12 @@ export class Core {
   // Description: close the open row in the file where it lives (which may be
   //              yesterday's, for a block spanning midnight — GOTCHAS).
   // Inputs:  patch — { category?, project?, notes? }; end = now
-  // Outputs: Promise<void>
+  // Outputs: Promise<mirror result> — passed to savedToastText by the caller
   async closeOpenRow(patch = {}) {
     const { hhmm } = this.nowParts();
-    await this.log.updateOpenRow(this.openRowDate, { end: hhmm, ...patch });
+    const result = await this.log.updateOpenRow(this.openRowDate, { end: hhmm, ...patch });
     this.openRowDate = null;
+    return result.mirror;
   }
 
   // Description: delete the open row — the app's only destructive operation.
@@ -281,8 +283,9 @@ export class Core {
     }
 
     // Close the block being described.
+    let mirror = null;
     try {
-      await this.closeOpenRow({ category, project, notes });
+      mirror = await this.closeOpenRow({ category, project, notes });
     } catch {
       this.popup.attempts += 1;
       this.surface.refresh();
@@ -326,7 +329,7 @@ export class Core {
       this.surface.notifyError(
         'Your entry was saved, but a new block couldn’t be opened — the log file may be locked. Press Start logging when it’s free.');
     } else {
-      this.surface.toast(`Logged: ${category} - ${project}`);
+      this.surface.toast(savedToastText(`Logged: ${category} - ${project}`, mirror));
       if (opts.andView) this.surface.showShell('dashboard');
     }
     this.surface.refresh();
@@ -420,6 +423,7 @@ export class Core {
     }
     const variantB = this.popup.variant === 'B';
     let wrap = null;
+    let wrapMirror = null;
     if (variantB) {
       wrap = {
         category: String(form.wrap?.category ?? '').trim(),
@@ -435,7 +439,7 @@ export class Core {
 
     if (variantB) {
       try {
-        await this.closeOpenRow(wrap);
+        wrapMirror = await this.closeOpenRow(wrap);
       } catch {
         return { ok: false, errors: ['Save failed — the log file may be locked. Close any app that has it open, then try again.'] };
       }
@@ -458,7 +462,9 @@ export class Core {
     this.sched.clear(T_INTERVAL);
     this.armFocusEnd(end);
     this.sched.clear(T_ENGAGEMENT);   // suspended during focus (SPEC §5.3)
-    if (variantB) this.surface.toast(`Logged: ${wrap.category} - ${wrap.project}`);
+    if (variantB) {
+      this.surface.toast(savedToastText(`Logged: ${wrap.category} - ${wrap.project}`, wrapMirror));
+    }
     this.closePopup({ restartInterval: false });
     this.surface.hideShell();   // session started — dashboard recedes
     return { ok: true };
@@ -532,14 +538,17 @@ export class Core {
 
     this.settings.addToLibrary('category', category);
     if (project !== '') this.settings.addToLibrary('project', project);
+    let mirror = null;
     try {
-      await this.log.appendRow(date, {
+      const written = await this.log.appendRow(date, {
         start, end, kind: KIND_MANUAL, category, project, notes
       });
+      mirror = written.mirror;
     } catch {
       return { ok: false, errors: ['Save failed — the log file for that date may be locked. Nothing was written.'] };
     }
-    this.surface.toast(`Logged: ${category}${project ? ' - ' + project : ''}`);
+    this.surface.toast(
+      savedToastText(`Logged: ${category}${project ? ' - ' + project : ''}`, mirror));
     this.surface.refresh();
     return { ok: true };
   }
@@ -553,6 +562,18 @@ export class Core {
   intervalChange(minutes) {
     const stored = this.settings.setInterval(minutes);
     if (this.sched.isArmed(T_INTERVAL)) this.armIntervalIfEligible();
+    this.userAction();
+    return stored;
+  }
+
+  // Description: switch the log format. The daily log is unaffected either way;
+  //              this only turns the project mirror on or off, and the log layer
+  //              is told directly rather than reading settings itself (§5.1).
+  // Inputs:  format — 'daily' | 'daily+project'
+  // Outputs: the stored value
+  logFormatChange(format) {
+    const stored = this.settings.setLogFormat(format);
+    this.log.setProjectMirror(stored === LOG_FORMAT_DAILY_PLUS_PROJECT);
     this.userAction();
     return stored;
   }
@@ -797,10 +818,35 @@ export class Core {
       popupTimeoutSec: s.popupTimeoutSec,
       logRoot: this.log.root,
       logRootIsDefault: s.logRoot === null,
+      logFormat: s.logFormat,
       categories: s.categories,
       projects: s.projects,
       colors: colorMaps,
       todayRows
     };
   }
+}
+
+// Description: the toast text for a saved entry. The mirror is a convenience,
+//              so its failure replaces the confirmation rather than joining it —
+//              the user is never told "Logged" and "couldn't save" at once. The
+//              shell is deliberately NOT opened: the likeliest cause is the
+//              project file being open in Excel for hours, which would throw the
+//              dashboard on screen at every check-in (SPEC §8.1, 2026-08-17).
+//              The two failures get different sentences because they are
+//              different problems: a write failure names a file that exists and
+//              may free up on its own, while an unwritable name names something
+//              only the user can fix by renaming — and saying a nonexistent file
+//              "couldn't be updated" would be a plain lie.
+// Inputs:  successText — the normal confirmation
+//          mirror — MIRROR_OK | MIRROR_SKIPPED | { failedName, reason }
+// Outputs: string
+function savedToastText(successText, mirror) {
+  let text = successText;
+  if (mirror !== null && typeof mirror === 'object') {
+    text = mirror.reason === MIRROR_REASON_WRITE_FAILED
+      ? `Saved — but ${mirror.failedName} couldn’t be updated.`
+      : `Saved — but “${mirror.failedName}” can’t be used as a folder and file name.`;
+  }
+  return text;
 }

@@ -19,6 +19,7 @@ import { LogStore, LogWriteError } from '../src/main/log/log_store.js';
 import { SettingsStore } from '../src/main/settings/settings_store.js';
 import {
   CTX_EXIT_PROMPT, CTX_FOCUS_END, CTX_FOCUS_INTERRUPT, CTX_INTERVAL, CTX_OFF_CYCLE,
+  LOG_FORMAT_DAILY, LOG_FORMAT_DAILY_PLUS_PROJECT, MIRROR_OK,
   STATE_ACTIVE_FOCUS, STATE_ACTIVE_NORMAL, STATE_INACTIVE, TIMED_OUT_NOTE
 } from '../src/shared/constants.js';
 
@@ -581,4 +582,84 @@ test('interval change re-arms from now with the new period', async () => {
   core.intervalChange(45);
   assert.equal(core.sched.deadline(T_INTERVAL), time.clock() + 45 * MIN);
   assert.equal(core.settings.data.intervalMinutes, 45);
+});
+
+// ── project mirror surfacing ────────────────────────────────────────────────
+
+test('submit toasts as usual when the project mirror succeeds', async () => {
+  const { core, time, settings, log, surface } = makeCore();
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  assert.equal(settings.data.logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
+  assert.equal(log.projectMirror, true);
+  await core.startLogging();
+  await time.advance(20 * MIN);
+  await core.checkinSubmit({ category: 'Work', project: 'LogIT', notes: '' });
+  assert.deepEqual(surface.last('toast'), ['toast', 'Logged: Work - LogIT']);
+});
+
+test('a failed project mirror warns in the toast and never opens the shell', async () => {
+  const { core, time, log, surface, root, today } = makeCore();
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  // A file where the category folder must go makes the mirror write fail.
+  const projects = path.join(root, 'AppLog', 'Projects');
+  fs.mkdirSync(projects, { recursive: true });
+  fs.writeFileSync(path.join(projects, 'Work'), 'in the way', 'utf8');
+
+  await core.startLogging();
+  await time.advance(20 * MIN);
+  const res = await core.checkinSubmit({ category: 'Work', project: 'LogIT', notes: 'kept' });
+  assert.equal(res.ok, true);
+  assert.deepEqual(surface.last('toast'), ['toast', 'Saved — but LogIT.csv couldn’t be updated.']);
+  assert.equal(surface.last('notifyError'), undefined);
+  assert.equal(surface.calls.some((c) => c[0] === 'showShell'), false);
+  // The entry is saved and the cycle continues exactly as normal.
+  const rows = log.readDay(today);
+  assert.equal(rows[0].notes, 'kept');
+  assert.equal(rows[0].end, '14:20');
+  assert.equal(rows.length, 2);          // a fresh open row was still opened
+  assert.equal(core.state, STATE_ACTIVE_NORMAL);
+});
+
+test('a failed project mirror on a manual entry warns in the toast', async () => {
+  const { core, log, root, surface } = makeCore();
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  const projects = path.join(root, 'AppLog', 'Projects');
+  fs.mkdirSync(projects, { recursive: true });
+  fs.writeFileSync(path.join(projects, 'School'), 'in the way', 'utf8');
+
+  const res = await core.manualSave({
+    date: '2026-05-19', start: '09:00', end: '10:00',
+    category: 'School', project: 'Capstone', notes: 'back-filled'
+  });
+  assert.equal(res.ok, true);
+  assert.deepEqual(surface.last('toast'),
+    ['toast', 'Saved — but Capstone.csv couldn’t be updated.']);
+  // The back-filled row is in the daily file for that date regardless.
+  const rows = log.readDay('2026-05-19');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].notes, 'back-filled');
+});
+
+test('an unwritable name gets its own sentence, not "couldn’t be updated"', async () => {
+  const { core, time, surface, log, today } = makeCore();
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  await core.startLogging();
+  await time.advance(20 * MIN);
+  // A category of only dots has no writable file name at all, so no file was
+  // ever built — saying one "couldn't be updated" would be untrue.
+  await core.checkinSubmit({ category: '...', project: 'Capstone', notes: 'kept' });
+  const [, text] = surface.last('toast');
+  assert.match(text, /can’t be used as a folder and file name/);
+  assert.doesNotMatch(text, /couldn’t be updated/);
+  // Saved regardless: the daily log took the entry with the exact typed name.
+  const rows = log.readDay(today);
+  assert.equal(rows[0].category, '...');
+  assert.equal(rows[0].notes, 'kept');
+});
+
+test('the log format reaches the state snapshot for the dashboard', () => {
+  const { core } = makeCore();
+  assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY);
+  core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
+  assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
 });
