@@ -33,6 +33,7 @@ export function registerIpc({ core, queries, windows }) {
       case 'focus-end-early':      return core.focusEndEarly();
       case 'manual-save':          return core.manualSave(payload);
       case 'interval-change':      return core.intervalChange(payload.minutes);
+      case 'log-format-change':    return core.logFormatChange(payload.format);
       case 'theme-toggle':         return core.themeToggle();
       case 'user-action':          return core.userAction();
       case 'shortcut-activate':    return core.shortcutActivate();

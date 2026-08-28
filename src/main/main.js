@@ -10,6 +10,7 @@
 
 import { app } from 'electron';
 import path from 'node:path';
+import { LOG_FORMAT_DAILY_PLUS_PROJECT } from '../shared/constants.js';
 import { Core } from './core/core.js';
 import { registerIpc } from './ipc.js';
 import { LogStore } from './log/log_store.js';
@@ -38,6 +39,9 @@ if (!app.requestSingleInstanceLock()) {
 
     const settings = new SettingsStore(defaultRoot);
     const log = new LogStore(settings.logRoot);
+    // The log layer never reads settings itself (CLAUDE.md §5.1), so the format
+    // is handed to it here, the same way the root is on the line above.
+    log.setProjectMirror(settings.data.logFormat === LOG_FORMAT_DAILY_PLUS_PROJECT);
     windows = new WindowManager();
     const clock = () => Date.now();
     const core = new Core({
