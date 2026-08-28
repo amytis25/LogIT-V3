@@ -34,6 +34,16 @@ export class SettingsStore {
     return this.data.logRoot ?? this.defaultRoot;
   }
 
+  // Description: whether the project mirror should be written alongside the
+  //              daily log. Derived here rather than at each caller so the
+  //              meaning of the format setting lives in one place — the same
+  //              reason logRoot is a getter (CLAUDE.md §6.3).
+  // Inputs:  none
+  // Outputs: boolean
+  get mirrorEnabled() {
+    return this.data.logFormat === LOG_FORMAT_DAILY_PLUS_PROJECT;
+  }
+
   // Description: read + normalise the settings file; snap the interval; save
   //              back if anything was normalised.
   // Inputs:  none

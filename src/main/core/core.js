@@ -17,8 +17,7 @@
 
 import {
   CTX_EXIT_PROMPT, CTX_FOCUS_END, CTX_FOCUS_INTERRUPT, CTX_INTERVAL, CTX_OFF_CYCLE,
-  ENGAGEMENT_TIMEOUT_MS, KIND_FOCUS, KIND_MANUAL, KIND_NORMAL,
-  LOG_FORMAT_DAILY_PLUS_PROJECT, MIRROR_REASON_WRITE_FAILED,
+  ENGAGEMENT_TIMEOUT_MS, KIND_FOCUS, KIND_MANUAL, KIND_NORMAL, MIRROR_REASON_WRITE_FAILED,
   STATE_ACTIVE_FOCUS, STATE_ACTIVE_NORMAL, STATE_INACTIVE,
   SUBMIT_MAX_ATTEMPTS, TIMED_OUT_NOTE
 } from '../../shared/constants.js';
@@ -584,8 +583,7 @@ export class Core {
       // threw: the dashboard reads that same in-memory value, so letting the two
       // diverge would show a format the app isn't actually using. A failed save
       // leaves only the FILE stale, which the next successful save corrects.
-      this.log.setProjectMirror(
-        this.settings.data.logFormat === LOG_FORMAT_DAILY_PLUS_PROJECT);
+      this.log.setProjectMirror(this.settings.mirrorEnabled);
     }
     return stored;
   }
