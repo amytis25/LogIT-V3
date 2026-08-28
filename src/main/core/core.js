@@ -177,7 +177,8 @@ export class Core {
   // Description: close the open row in the file where it lives (which may be
   //              yesterday's, for a block spanning midnight — GOTCHAS).
   // Inputs:  patch — { category?, project?, notes? }; end = now
-  // Outputs: Promise<mirror result> — passed to savedToastText by the caller
+  // Outputs: Promise<mirror result> — MIRROR_OK, MIRROR_SKIPPED, or a
+  //          { failedName, reason } failure
   async closeOpenRow(patch = {}) {
     const { hhmm } = this.nowParts();
     const result = await this.log.updateOpenRow(this.openRowDate, { end: hhmm, ...patch });
@@ -572,8 +573,17 @@ export class Core {
   // Inputs:  format — 'daily' | 'daily+project'
   // Outputs: the stored value
   logFormatChange(format) {
-    const stored = this.settings.setLogFormat(format);
-    this.log.setProjectMirror(stored === LOG_FORMAT_DAILY_PLUS_PROJECT);
+    let stored;
+    try {
+      stored = this.settings.setLogFormat(format);
+    } finally {
+      // Keep the log layer in step with the in-memory setting even if the save
+      // threw: the dashboard reads that same in-memory value, so letting the two
+      // diverge would show a format the app isn't actually using. A failed save
+      // leaves only the FILE stale, which the next successful save corrects.
+      this.log.setProjectMirror(
+        this.settings.data.logFormat === LOG_FORMAT_DAILY_PLUS_PROJECT);
+    }
     this.userAction();
     return stored;
   }

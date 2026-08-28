@@ -19,7 +19,7 @@ import { LogStore, LogWriteError } from '../src/main/log/log_store.js';
 import { SettingsStore } from '../src/main/settings/settings_store.js';
 import {
   CTX_EXIT_PROMPT, CTX_FOCUS_END, CTX_FOCUS_INTERRUPT, CTX_INTERVAL, CTX_OFF_CYCLE,
-  LOG_FORMAT_DAILY, LOG_FORMAT_DAILY_PLUS_PROJECT, MIRROR_OK,
+  LOG_FORMAT_DAILY, LOG_FORMAT_DAILY_PLUS_PROJECT,
   STATE_ACTIVE_FOCUS, STATE_ACTIVE_NORMAL, STATE_INACTIVE, TIMED_OUT_NOTE
 } from '../src/shared/constants.js';
 
@@ -662,4 +662,14 @@ test('the log format reaches the state snapshot for the dashboard', () => {
   assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY);
   core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT);
   assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
+});
+
+test('a failed settings save still keeps the log layer in step with the in-memory format', () => {
+  const { core, log, settings } = makeCore();
+  settings.persist = () => { throw new Error('disk full'); };
+  assert.throws(() => core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT));
+  // The in-memory setting changed even though the save failed; the log layer's
+  // flag must match it rather than lag behind at the old value.
+  assert.equal(settings.data.logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
+  assert.equal(log.projectMirror, true);
 });
