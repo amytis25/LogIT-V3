@@ -573,6 +573,9 @@ export class Core {
   // Inputs:  format — 'daily' | 'daily+project'
   // Outputs: the stored value
   logFormatChange(format) {
+    // The click is a user action whether or not the save behind it succeeds
+    // (SPEC §5.3), so engagement is reset before anything that can throw.
+    this.userAction();
     let stored;
     try {
       stored = this.settings.setLogFormat(format);
@@ -584,7 +587,6 @@ export class Core {
       this.log.setProjectMirror(
         this.settings.data.logFormat === LOG_FORMAT_DAILY_PLUS_PROJECT);
     }
-    this.userAction();
     return stored;
   }
 

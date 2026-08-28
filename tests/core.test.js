@@ -664,12 +664,21 @@ test('the log format reaches the state snapshot for the dashboard', () => {
   assert.equal(core.getState().logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
 });
 
-test('a failed settings save still keeps the log layer in step with the in-memory format', () => {
-  const { core, log, settings } = makeCore();
+test('a failed settings save still keeps the log layer in step with the in-memory format, and still registers the user action', async () => {
+  const { core, time, log, settings } = makeCore();
+  // Drive into PAUSED the same way the engagement tests do, rather than
+  // setting the flag by hand.
+  await core.startLogging();
+  await time.advance(61 * MIN);
+  assert.equal(core.paused, true);
+
   settings.persist = () => { throw new Error('disk full'); };
   assert.throws(() => core.logFormatChange(LOG_FORMAT_DAILY_PLUS_PROJECT));
   // The in-memory setting changed even though the save failed; the log layer's
   // flag must match it rather than lag behind at the old value.
   assert.equal(settings.data.logFormat, LOG_FORMAT_DAILY_PLUS_PROJECT);
   assert.equal(log.projectMirror, true);
+  // The click is a user action regardless of the throw (SPEC §5.3): PAUSED
+  // clears and engagement resets.
+  assert.equal(core.paused, false);
 });
