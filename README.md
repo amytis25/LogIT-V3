@@ -184,10 +184,9 @@ Grab the latest from [**Releases**](https://github.com/amytis25/LogIT-logging-ap
 
 ### macOS
 
-Mac apps can only be built on a Mac — electron-builder cannot cross-compile a `.dmg` from Windows — so
-there is no prebuilt download. Building one needs [Node.js](https://nodejs.org) 18+, plus Xcode's
-command-line tools (`xcode-select --install`) if you do not already have them — packaging applies the
-ad-hoc signature Apple Silicon insists on, via `codesign`:
+Mac apps can only be built on a Mac — electron-builder cannot cross-compile a `.dmg` from Windows, and
+its docs are blunt that "macOS Code Signing works only on macOS" — so there is no prebuilt download.
+Building one needs [Node.js](https://nodejs.org) 18+ and nothing else:
 
 ```bash
 git clone https://github.com/amytis25/LogIT-logging-app.git
@@ -204,8 +203,12 @@ npm run dist    # icons -> renderer bundle -> .dmg
 npm run icons && npm run build:renderer && npx electron-builder --mac --universal
 ```
 
-If the build stops trying to sign with a certificate in your keychain, tell it not to bother:
-`CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist`.
+**The app ships unsigned.** electron-builder 24 skips signing outright when it finds no certificate in
+the keychain — it does *not* fall back to an ad-hoc signature (`app-builder-lib`'s `macPackager.js`
+returns early instead). Notarising needs a $99/yr Apple Developer account. If the build *stops* because
+it found a certificate it cannot use, `CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist` tells it not to
+look. An unsigned arm64 app is the case Apple Silicon is most likely to refuse outright, so if the app
+is killed on launch rather than merely warned about, that is where to start.
 
 **First launch.** A `.dmg` you built yourself carries no quarantine flag, so it just opens. Move it to
 another Mac — AirDrop, a download, a USB stick — and Gatekeeper blocks it, because the app is neither
