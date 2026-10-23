@@ -10,6 +10,23 @@ would. Blunt, symptom first. Record what was **tried and didn't work**, not just
 
 ---
 
+## Repo layout (observed 2026-10-23)
+
+- **`CLAUDE.md` only works at the repo root.** Claude Code auto-loads it from the working directory and
+  its parents at session start; a `CLAUDE.md` anywhere else is an ordinary file that gets read only if
+  something happens to open it. So the rules file cannot be tidied into `docs/claude/` with the spec,
+  UPDATES and GOTCHAS — move it and a new session starts with no project rules at all, silently, with
+  no warning and nothing in the transcript to show it. The symptom is a session that ignores the hard
+  invariants and writes 7,500-line solutions: it never saw §4. The three companion docs are safe to move
+  because `CLAUDE.md` *tells* the session to read them by path, which is an on-demand read.
+- **Citations in source are names, not paths** — `FUNCTIONAL_SPEC §6`, `CLAUDE.md §5.1`,
+  `GOTCHAS "..."`. That is deliberate: it is what let the companion docs move on 2026-10-23 without
+  touching ~40 files across `src/` and `tests/`. Don't "fix" them into relative paths; the repo map in
+  CLAUDE.md §1 is what resolves a name to a location, and paths in 40 comments would need re-editing on
+  the next move.
+
+---
+
 ## Electron rebuild (observed 2026-08-17, first build session)
 
 - **An inline comment in `.gitignore` silently disables the rule.** `#` only starts a comment at the

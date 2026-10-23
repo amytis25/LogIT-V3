@@ -1,6 +1,6 @@
 # CLAUDE.md — LogIT rebuild (repo root)
 
-Project context and rules for Claude Code. Read this **and** `FUNCTIONAL_SPEC.md` before writing anything.
+Project context and rules for Claude Code. Read this **and** `docs/claude/FUNCTIONAL_SPEC.md` before writing anything.
 This file owns *how* we work here; the spec owns *what* the app does. They do not repeat each other.
 
 ---
@@ -20,11 +20,35 @@ only user, uses it daily, and will keep using the log files long after the code 
 
 ```
 /                        ← you are here (the rebuild)
-  CLAUDE.md              this file: rules, architecture, style, do/don't
-  FUNCTIONAL_SPEC.md     THE SPEC — every behaviour, ASM charts, event→effect tables,
+  CLAUDE.md              this file: rules, architecture, style, do/don't. The only
+                         Claude-facing file left at the top level, because Claude Code
+                         auto-loads it from the working directory — move it and nothing
+                         reads it. Everything else for Claude lives in docs/claude/.
+  README.md              the human-facing project page: install, design notes, layout
+
+  docs/claude/           written for Claude, read on demand (not auto-loaded)
+    FUNCTIONAL_SPEC.md   THE SPEC — every behaviour, ASM charts, event→effect tables,
                          acceptance checklist. Source of truth for what to build.
-  UPDATES.md             decision log, newest on top — the "what's true now" file
-  GOTCHAS.md             traps, quirks, things already tried. Read before debugging.
+    UPDATES.md           decision log, newest on top — the "what's true now" file
+    GOTCHAS.md           traps, quirks, things already tried. Read before debugging.
+  docs/PLAN.md           the original build plan, kept as history
+  docs/superpowers/      per-feature design + implementation plans, dated
+  docs/images/           screenshots the README embeds
+
+  src/main/              Electron main process. No UI imports anywhere in here.
+    core/                core.js (the one state machine) + scheduler.js (the timers)
+    log/                 log_store.js (the only thing that builds a path), csv.js,
+                         project_file.js (the pure half of the project mirror)
+    settings/            settings_store.js
+    main.js              entry: picks the data root, wires the layers together
+    windows.js           window creation; ipc.js, queries.js  the renderer's surface
+  src/shared/            constants.js, derive.js — imported from both sides
+  src/preload/           preload.cjs, the IPC bridge
+  src/renderer/          React: shell, four panes, popups, shortcut, widgets, theme
+  tests/                 node:test suites: core, log_store, project_log, project_file,
+                         settings_derive. `npm test` runs them headless.
+  scripts/               make-icon.mjs — regenerates build/icon.png and build/icon.ico
+
   design_handoff/        visual design reference (HTML/JSX prototypes, screenshots).
                          READ-ONLY reference for look & layout. Its src/data.jsx is MOCK
                          DATA — never a behaviour source. Behaviour comes from the spec.
@@ -33,7 +57,9 @@ only user, uses it daily, and will keep using the log files long after the code 
                          Superseded behaviour is catalogued in FUNCTIONAL_SPEC Appendix B.
 ```
 
-**Nothing else exists yet.** The source tree, the stack, the test layout: all unchosen. See §3.
+**Citations in source name the file, not its path** — `FUNCTIONAL_SPEC §6`, `CLAUDE.md §5.1`,
+`GOTCHAS "end.replace(...) is not tomorrow"`. They stay correct wherever these files sit, and this
+map is how you turn one into a path. Don't rewrite them into paths; that is a 40-file diff for nothing.
 
 ---
 
@@ -171,10 +197,10 @@ The old build reached 7,500 lines for an app that appends rows to a text file. D
 
 Neither is optional bookkeeping; they are how the next session knows what this one learned.
 
-- **UPDATES.md** — append an entry whenever a decision changes: what changed, why, what it invalidates,
+- **`docs/claude/UPDATES.md`** — append an entry whenever a decision changes: what changed, why, what it invalidates,
   what's still open and who owns it. Newest on top. Template at the bottom of the file. If you finish a
   phase, change an approach, or the user overrules something — that's an entry.
-- **GOTCHAS.md** — add an entry the moment something wastes more than ~20 minutes, *or* the moment you
+- **`docs/claude/GOTCHAS.md`** — add an entry the moment something wastes more than ~20 minutes, *or* the moment you
   discover a trap that looks like it would. Blunt, symptom-first, so the next reader recognises it before
   re-deriving it. Includes what was **tried and didn't work**, not just the answer.
 
@@ -205,13 +231,14 @@ these two files instead.
 ## 9. Claude Code: do / don't
 
 **Do**
-- Read `FUNCTIONAL_SPEC.md` before implementing any behaviour — including "obvious" ones. The five popup
+- Read `docs/claude/FUNCTIONAL_SPEC.md` before implementing any behaviour — including "obvious" ones. The five popup
   contexts differ in ways that are not guessable.
 - Build the log layer, settings, and core state machine before any UI (§5.4).
 - Route every file read/write through the log layer (§5.1).
 - Follow §6 on every file you touch or create.
 - Give full working files when fixing, not fragments.
-- Update `UPDATES.md` on a decision, `GOTCHAS.md` on a trap — in the same change, not "later".
+- Update `docs/claude/UPDATES.md` on a decision, `docs/claude/GOTCHAS.md` on a trap — in the same
+  change, not "later".
 - Say plainly when something is unverified. "Not run yet" is an acceptable status; a claim that it passes is
   not, unless it ran.
 
@@ -234,7 +261,7 @@ these two files instead.
 
 Source, spec, and context are tracked; anything a tool regenerates is not.
 
-- **Tracked on purpose:** `CLAUDE.md`, `FUNCTIONAL_SPEC.md`, `UPDATES.md`, `GOTCHAS.md`, source, tests.
+- **Tracked on purpose:** `CLAUDE.md` and `docs/` (the spec, UPDATES, GOTCHAS, plans), source, tests.
   They are the context a collaborator needs when they open this folder in Claude Code — never ignore them.
 - **Never committed:** `.claude/` (machine-local state), build/cache output, and — most importantly —
   **`AppLog/` and the settings file.** That is the user's real personal data and it does not belong in git.

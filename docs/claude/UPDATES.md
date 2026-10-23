@@ -5,7 +5,43 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-10-23 (newest) — v3.1.0 is mainline; the macOS packaging instructions corrected
+## 2026-10-23 (newest) — Claude's docs moved to `docs/claude/`; the repo map rewritten
+
+**Change.** `FUNCTIONAL_SPEC.md`, `UPDATES.md` (this file) and `GOTCHAS.md` moved from the repo root to
+`docs/claude/`. The top level now carries one Claude-facing file instead of four. `CLAUDE.md` §1's repo
+map was rewritten, its six path-bearing references repointed, and the README's three links fixed.
+
+**`CLAUDE.md` itself cannot move, and that is not a preference.** Claude Code auto-loads it from the
+working directory at session start; anywhere else it is an ordinary file that only gets read if something
+opens it. Moving it would mean sessions silently starting with no project rules — no warning, nothing in
+the transcript. Recorded in `GOTCHAS.md` under "Repo layout", because the failure is invisible.
+
+**Why `docs/claude/` rather than a top-level `claude-instructions/`.** The point was getting these off the
+top level, and a new top-level folder only renames the clutter. `docs/` already held PLAN.md, the
+superpowers plans and the README screenshots, so this nests under what exists.
+
+**Source citations were deliberately left alone.** Roughly 40 comments across `src/` and `tests/` cite
+these files by *name and section* — `FUNCTIONAL_SPEC §6`, `CLAUDE.md §5.1`, `GOTCHAS "end.replace(…) is
+not tomorrow"`. Not one is a path, so all of them are still correct. Rewriting them would be a 40-file
+diff that buys nothing, buries the move in noise, and would need redoing at the next reshuffle. The repo
+map is what resolves a name to a location, and §1 now says so in as many words.
+
+**Also fixed, since the map was being rewritten anyway.** §1 still ended with "Nothing else exists yet.
+The source tree, the stack, the test layout: all unchosen." That stopped being true on 2026-08-17 and
+would have misled any new session that trusted it. The map now describes the real tree: `src/main`
+(core, log, settings, windows, ipc), `src/shared`, `src/preload`, `src/renderer`, `tests/`, `scripts/`.
+
+**Invalidates:** every root-level path of the form `FUNCTIONAL_SPEC.md`, `UPDATES.md` or `GOTCHAS.md`.
+Older entries in this file and the dated plans under `docs/superpowers/` still show the old locations;
+they are historical snapshots and were left as written. Bare section citations remain valid everywhere.
+
+**Open.** The root `CLAUDE.md` could be thinned to a stub that `@`-imports the rules back out of
+`docs/claude/`, leaving ~12 lines at the top level. Not done: it is exactly the re-export layer §6.5 says
+to delete, traded for one file's worth of tidiness. **Owner: user**, if they want it regardless.
+
+---
+
+## 2026-10-23 — v3.1.0 is mainline; the macOS packaging instructions corrected
 
 **Change.** `project-csv-logging` fast-forwarded onto `main` and pushed, so per-project CSVs (v3.1.0) are
 the mainline build. 111 headless tests pass on that commit, and both Windows artefacts were rebuilt from

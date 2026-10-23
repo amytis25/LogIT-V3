@@ -288,7 +288,7 @@ Worth stating plainly, since you are deciding whether to run a stranger's softwa
 **Specified, designed, directed and reviewed by [@amytis25](https://github.com/amytis25)** — the
 parts that decide what the software actually *is*:
 
-- **[`FUNCTIONAL_SPEC.md`](FUNCTIONAL_SPEC.md)** — ~1,100 lines pinning down every behaviour, state,
+- **[`FUNCTIONAL_SPEC.md`](docs/claude/FUNCTIONAL_SPEC.md)** — ~1,100 lines pinning down every behaviour, state,
   timer, popup context and edge case, with ASM charts, an event→effect table and an acceptance
   checklist. Written *before* any code existed; the implementation was built to it, not the reverse.
 - **[`CLAUDE.md`](CLAUDE.md)** — the engineering rules the model was held to: the hard invariants,
@@ -304,8 +304,8 @@ parts that decide what the software actually *is*:
 So: a person specified it, designed it, used it daily and corrected it in rounds against a running
 build; a model did the typing. The judgement is hers; the bugs are the model's.
 
-The full history is here if you want it — [`UPDATES.md`](UPDATES.md) records every decision and why,
-and [`GOTCHAS.md`](GOTCHAS.md) records the traps, including the embarrassing ones.
+The full history is here if you want it — [`UPDATES.md`](docs/claude/UPDATES.md) records every decision and why,
+and [`GOTCHAS.md`](docs/claude/GOTCHAS.md) records the traps, including the embarrassing ones.
 
 ## Project layout
 
