@@ -174,7 +174,7 @@ Each of these is a case where the obvious implementation is wrong:
 
 ### Windows
 
-Grab the latest from [**Releases**](https://github.com/amytis25/LogIT-V3/releases):
+Grab the latest from [**Releases**](https://github.com/amytis25/LogIT-logging-app/releases):
 
 - **`LogIT Setup <version>.exe`** — installer, adds a Start-menu entry
 - **`LogIT <version>.exe`** — portable single file, nothing installed
@@ -190,8 +190,8 @@ command-line tools (`xcode-select --install`) if you do not already have them �
 ad-hoc signature Apple Silicon insists on, via `codesign`:
 
 ```bash
-git clone https://github.com/amytis25/LogIT-V3.git
-cd LogIT-V3
+git clone https://github.com/amytis25/LogIT-logging-app.git
+cd LogIT-logging-app
 npm install
 npm test        # 111 headless tests — run these first; they prove the core on your machine
 npm run dist    # icons -> renderer bundle -> .dmg
