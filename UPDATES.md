@@ -9,8 +9,10 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 **Change.** `project-csv-logging` fast-forwarded onto `main` and pushed, so per-project CSVs (v3.1.0) are
 the mainline build. 111 headless tests pass on that commit, and both Windows artefacts were rebuilt from
-it: `release/LogIT Setup 3.1.0.exe` (installer) and `release/LogIT 3.1.0.exe` (portable). The README's
-**macOS** section was rewritten; nothing in `src/` changed.
+it: `release/LogIT Setup 3.1.0.exe` (installer) and `release/LogIT 3.1.0.exe` (portable), and both are
+attached to the **v3.1.0** GitHub Release (tagged at the README commit, marked Latest) — so the README's
+"grab the latest from Releases" now resolves to 3.1.0 rather than 3.0.4. The README's **macOS** section
+was rewritten; nothing in `src/` changed.
 
 **Why the macOS section needed fixing.** It claimed macOS blocks the first launch of the `.dmg` you just
 built. The quarantine flag is set by whatever *downloads* a file, not by the build, so a disk image built
