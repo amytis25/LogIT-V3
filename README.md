@@ -184,20 +184,49 @@ Grab the latest from [**Releases**](https://github.com/amytis25/LogIT-V3/release
 
 ### macOS
 
-Mac apps can only be built on a Mac, so there is no prebuilt download — but it is two commands:
+Mac apps can only be built on a Mac — electron-builder cannot cross-compile a `.dmg` from Windows — so
+there is no prebuilt download. Building one needs [Node.js](https://nodejs.org) 18+, plus Xcode's
+command-line tools (`xcode-select --install`) if you do not already have them — packaging applies the
+ad-hoc signature Apple Silicon insists on, via `codesign`:
 
 ```bash
 git clone https://github.com/amytis25/LogIT-V3.git
 cd LogIT-V3
 npm install
-npm run dist
+npm test        # 111 headless tests — run these first; they prove the core on your machine
+npm run dist    # icons -> renderer bundle -> .dmg
 ```
 
-That produces `release/LogIT-<version>.dmg`. It is not notarised, so macOS blocks the first launch:
-right-click the app → **Open** → **Open**, once. Requires [Node.js](https://nodejs.org) 18+.
+`npm run dist` builds for the Mac you are on — `release/LogIT-3.1.0-arm64.dmg` on Apple Silicon,
+`release/LogIT-3.1.0.dmg` on Intel. For one disk image that runs on both:
 
-> **Honesty note:** LogIT is built and used daily on Windows. The macOS target is configured and
-> there is no Windows-specific logic in the code, but nobody has actually run it on a Mac yet.
+```bash
+npm run icons && npm run build:renderer && npx electron-builder --mac --universal
+```
+
+If the build stops trying to sign with a certificate in your keychain, tell it not to bother:
+`CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist`.
+
+**First launch.** A `.dmg` you built yourself carries no quarantine flag, so it just opens. Move it to
+another Mac — AirDrop, a download, a USB stick — and Gatekeeper blocks it, because the app is neither
+signed nor notarised (an Apple Developer account is $99/yr). Right-click the app → **Open** → **Open**,
+once, or strip the flag outright:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/LogIT.app
+```
+
+**Where your data lands.** `~/Documents/LogIT/` — `settings.json` always there, `AppLog/` wherever the
+dashboard's **LOG ROOT** points (it defaults to that same folder). Per-project CSVs, when **LOG FORMAT**
+is `Daily + Project`, sit under `AppLog/Projects/<Category>/<Project>.csv`. Nothing is written outside
+the log root and Electron's own cache.
+
+> **Honesty note:** LogIT is built and used daily on Windows. There is no Windows-specific logic in the
+> code — the data root comes from Electron's own `documents` path, and the window icon already picks the
+> PNG on anything but Windows — and the headless suites pass wherever Node runs. But nobody has launched
+> the packaged Mac app yet. Two Mac-only things to watch if it misbehaves: whether the floating shortcut
+> stays on top across Spaces and full-screen apps, and whether closing the last window leaves the app
+> running in the background (it must — that is the whole design).
 
 ### From source
 

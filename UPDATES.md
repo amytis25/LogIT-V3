@@ -5,7 +5,37 @@ This is the "what's true now" file; traps and dead ends live in `GOTCHAS.md`.
 
 ---
 
-## 2026-08-28 (newest) — optional per-project CSVs alongside the daily log (v3.1.0)
+## 2026-10-23 (newest) — v3.1.0 is mainline; the macOS packaging instructions corrected
+
+**Change.** `project-csv-logging` fast-forwarded onto `main` and pushed, so per-project CSVs (v3.1.0) are
+the mainline build. 111 headless tests pass on that commit, and both Windows artefacts were rebuilt from
+it: `release/LogIT Setup 3.1.0.exe` (installer) and `release/LogIT 3.1.0.exe` (portable). The README's
+**macOS** section was rewritten; nothing in `src/` changed.
+
+**Why the macOS section needed fixing.** It claimed macOS blocks the first launch of the `.dmg` you just
+built. The quarantine flag is set by whatever *downloads* a file, not by the build, so a disk image built
+on the machine it runs on opens normally — the right-click → **Open** dance only starts mattering once the
+file has travelled to another Mac. It also said nothing about architecture, which does matter: `npm run
+dist` packages for the host arch only, so a Mac build yields `LogIT-3.1.0-arm64.dmg` or
+`LogIT-3.1.0.dmg` depending on the machine, and one image for both needs `--mac --universal`.
+
+**Added rather than invented:** Xcode's command-line tools as a soft prerequisite (packaging ad-hoc-signs
+the app, which Apple Silicon requires), `CSC_IDENTITY_AUTO_DISCOVERY=false` as the escape hatch when a
+keychain certificate derails the build, `xattr -dr com.apple.quarantine` as the alternative to the Finder
+dance, and where a Mac's data lands — `~/Documents/LogIT/` for `settings.json`, `AppLog/` wherever **LOG
+ROOT** points, project CSVs under `AppLog/Projects/<Category>/<Project>.csv`.
+
+**Invalidates:** the old README claim that a self-built `.dmg` is blocked on first launch, and the
+two-command macOS recipe that skipped both `npm test` and the architecture question.
+
+**Open.** Nobody has launched the packaged Mac app yet — unchanged from 2026-08-17, and the honesty note
+in the README still says so. **Owner: user.** First two things to check there: whether the floating
+shortcut stays on top across Spaces and full-screen apps, and whether closing the last window leaves the
+app running in the background.
+
+---
+
+## 2026-08-28 — optional per-project CSVs alongside the daily log (v3.1.0)
 
 **Change.** A second, optional logging format. With `LOG FORMAT` set to `Daily + Project` on the dashboard,
 every *completed* entry is also appended to `AppLog/Projects/<Category>/<Project>.csv` — four columns,
